@@ -4,8 +4,154 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tiga Dunia Wajahmu - MAX 12</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  
+  <!-- Preload OFL Fonts (DESIGN.md Sec. 4) -->
+  <link rel="preload" href="assets/fonts/cormorant-garamond-italic-600.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/plus-jakarta-sans.woff2" as="font" type="font/woff2" crossorigin>
+  
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>Halo</h1>
+  <!-- Ambient Animated Background (DESIGN.md Sec. 5) -->
+  <div class="bg-ambient" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header: Title & Step Indicator -->
+    <header class="app-header">
+      <div class="brand-title">MAX 12</div>
+      <nav class="step-indicator" aria-label="Indikator Langkah">
+        <span class="step-dot active" data-step="1" title="Layar 1: Intro"></span>
+        <span class="step-dot" data-step="2" title="Layar 2: Tema"></span>
+        <span class="step-dot" data-step="3" title="Layar 3: Kamera"></span>
+        <span class="step-dot" data-step="4" title="Layar 4: Hasil"></span>
+      </nav>
+    </header>
+
+    <!-- Main Screens Container -->
+    <main class="app-main">
+      
+      <!-- Layar 1: Intro -->
+      <section id="screen-intro" class="screen active" aria-labelledby="intro-title">
+        <div class="visual-pane">
+          <div class="intro-artwork">
+            <div class="intro-portal">
+              <span class="portal-sparkle sparkle-1"></span>
+              <span class="portal-sparkle sparkle-2"></span>
+              <span class="portal-sparkle sparkle-3"></span>
+              <div class="intro-portal-text">Ruang Liminal<br>Tiga Dunia</div>
+            </div>
+          </div>
+        </div>
+        <div class="control-panel">
+          <span class="tagline-badge">Fluid State of Mind</span>
+          <h1 id="intro-title" class="screen-title">Tiga Dunia Wajahmu</h1>
+          <p class="screen-desc">Satu wajah, tiga cara melihat dunia.</p>
+          <div class="btn-group">
+            <button id="btn-start" class="btn btn-primary" type="button">Mulai</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Layar 2: Pilih Tema -->
+      <section id="screen-theme" class="screen" aria-labelledby="theme-title">
+        <div class="visual-pane">
+          <div class="intro-artwork" id="theme-visual-preview">
+            <div class="intro-portal">
+              <div class="intro-portal-text" id="theme-preview-title">Imajinasi</div>
+            </div>
+          </div>
+        </div>
+        <div class="control-panel">
+          <h2 id="theme-title" class="screen-title">Pilih duniamu.</h2>
+          <div class="theme-selector-list" role="radiogroup" aria-label="Pilihan Tema">
+            <div class="theme-card theme-card-imajinasi selected" data-theme="imajinasi" tabindex="0" role="radio" aria-checked="true">
+              <div class="theme-card-preview preview-imajinasi"></div>
+              <div class="theme-card-info">
+                <span class="theme-card-name">Imajinasi</span>
+                <span class="theme-card-desc">Taman kaca yang bercahaya.</span>
+              </div>
+            </div>
+            <div class="theme-card theme-card-realitas" data-theme="realitas" tabindex="0" role="radio" aria-checked="false">
+              <div class="theme-card-preview preview-realitas"></div>
+              <div class="theme-card-info">
+                <span class="theme-card-name">Realitas</span>
+                <span class="theme-card-desc">Potret apa adanya.</span>
+              </div>
+            </div>
+            <div class="theme-card theme-card-surealis" data-theme="surealis" tabindex="0" role="radio" aria-checked="false">
+              <div class="theme-card-preview preview-surealis"></div>
+              <div class="theme-card-info">
+                <span class="theme-card-name">Surealis</span>
+                <span class="theme-card-desc">Ruang di antara keduanya.</span>
+              </div>
+            </div>
+          </div>
+          <div class="btn-group">
+            <button id="btn-theme-next" class="btn btn-primary" type="button">Lanjut ke Kamera</button>
+            <button id="btn-theme-back" class="btn btn-secondary" type="button">Kembali</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Layar 3: Kamera -->
+      <section id="screen-camera" class="screen" aria-labelledby="camera-title">
+        <div class="visual-pane">
+          <div class="camera-container">
+            <div class="camera-preview-placeholder">
+              <span style="color: var(--sky); font-size: 16px;">[Pratinjau Kamera]</span>
+            </div>
+            <div class="camera-oval-guide">
+              <div class="camera-oval-cutout"></div>
+            </div>
+          </div>
+        </div>
+        <div class="control-panel">
+          <h2 id="camera-title" class="screen-title">Kamera</h2>
+          <p class="screen-desc">Pas-kan wajahmu di dalam oval.</p>
+          <div class="btn-group">
+            <button id="btn-camera-capture" class="btn btn-primary" type="button">Ambil Foto</button>
+            <button id="btn-camera-back" class="btn btn-secondary" type="button">Kembali</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Layar 4: Hasil -->
+      <section id="screen-result" class="screen" aria-labelledby="result-title">
+        <div class="visual-pane">
+          <div class="result-poster-frame">
+            <div class="poster-mockup">
+              <div class="poster-mockup-caption">MAX 12</div>
+              <div class="poster-mockup-face">Potret Wajah</div>
+              <div>
+                <div class="poster-mockup-title" id="result-theme-label">Imajinasi</div>
+                <div class="poster-mockup-caption" style="margin-top: 6px;">Tiga Dunia Wajahmu</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="control-panel">
+          <h2 id="result-title" class="screen-title">Ini duniamu.</h2>
+          <div class="btn-group">
+            <button id="btn-download" class="btn btn-primary" type="button">Unduh</button>
+            <button id="btn-retake" class="btn btn-secondary" type="button">Ulangi</button>
+            <button id="btn-change-theme" class="btn btn-secondary" type="button">Ganti Tema</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer: Privacy notice (DESIGN.md Sec. 5) -->
+    <footer class="app-footer">
+      <p>Fotomu diproses di perangkat ini dan tidak diunggah</p>
+    </footer>
+  </div>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>

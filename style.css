@@ -1,0 +1,655 @@
+/* ==========================================================================
+   Tiga Dunia Wajahmu (MAX 12) - Design System & Stylesheet
+   Based on DESIGN.md: Fluid State of Mind
+   ========================================================================== */
+
+/* 1. Self-hosted Fonts (OFL) */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url('assets/fonts/cormorant-garamond-italic-600.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('assets/fonts/plus-jakarta-sans.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('assets/fonts/plus-jakarta-sans.woff2') format('woff2');
+}
+
+/* 2. Design Tokens */
+:root {
+  /* Color Palette */
+  --ultramarine-deep: #0A1F6B;
+  --ultramarine:      #1536A8;
+  --azure:            #2F63D6;
+  --sky:              #8DB8F2;
+  --cloud:            #E6F0FF;
+  --pearl:            #F7FAFF;
+  --gold:             #FFD86B;
+  --gold-glow:        #FFEFA8;
+  --rose:             #F2A7B8;
+  --ruby:             #D4234F;
+  --ink:              #07124A;
+
+  /* Theme: Realitas (Cyanotype / Archive) */
+  --cyan-dark:        #0E2A5C;
+  --paper-cool:       #F1F4F8;
+  --cyan-pale:        #CFE0F7;
+
+  /* Typography Stacks */
+  --font-display:     'Cormorant Garamond', Georgia, serif;
+  --font-ui:          'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* Sizing & Radius */
+  --btn-height:       64px;
+  --btn-radius:       999px;
+  --panel-radius:     24px;
+  --panel-width:      420px;
+  --transition-fast:  250ms ease;
+}
+
+/* 3. Base & Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background-color: var(--ultramarine-deep);
+  color: var(--pearl);
+  font-family: var(--font-ui);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 4. Ambient Background Blobs (DESIGN.md Sec. 5) */
+.bg-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 30%, var(--ultramarine) 0%, var(--ultramarine-deep) 100%);
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.25;
+  transform-origin: center center;
+}
+
+.blob-1 {
+  top: -10%;
+  left: -5%;
+  width: 65vw;
+  height: 65vw;
+  background: var(--azure);
+  animation: blobFloat1 40s infinite ease-in-out alternate;
+}
+
+.blob-2 {
+  bottom: -15%;
+  right: -5%;
+  width: 60vw;
+  height: 60vw;
+  background: var(--sky);
+  animation: blobFloat2 36s infinite ease-in-out alternate;
+}
+
+.blob-3 {
+  top: 40%;
+  right: 25%;
+  width: 45vw;
+  height: 45vw;
+  background: var(--azure);
+  animation: blobFloat3 44s infinite ease-in-out alternate;
+}
+
+@keyframes blobFloat1 {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(6vw, 8vh) scale(1.08); }
+  100% { transform: translate(-4vw, 4vh) scale(0.95); }
+}
+
+@keyframes blobFloat2 {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(-8vw, -6vh) scale(1.05); }
+  100% { transform: translate(5vw, -4vh) scale(0.92); }
+}
+
+@keyframes blobFloat3 {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(5vw, -5vh) scale(1.1); }
+  100% { transform: translate(-7vw, 6vh) scale(0.96); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blob {
+    animation: none !important;
+  }
+}
+
+/* 5. App Shell & Structure */
+.app-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 20px 32px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+/* Header */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 48px;
+  padding: 0 8px;
+}
+
+.brand-title {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--pearl);
+  text-transform: uppercase;
+}
+
+/* Step Indicator */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: rgba(247, 250, 255, 0.28);
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.step-dot.active {
+  background-color: var(--gold);
+  transform: scale(1.3);
+  box-shadow: 0 0 10px rgba(255, 216, 107, 0.7);
+}
+
+/* Main Area */
+.app-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0;
+}
+
+/* Screen Wrapper */
+.screen {
+  display: none;
+  width: 100%;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.screen.active {
+  display: flex;
+  opacity: 1;
+  width: 100%;
+  gap: 40px;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen {
+    transition: none !important;
+  }
+}
+
+/* 6. Two-Column Layout (Landscape) */
+.visual-pane {
+  flex: 1;
+  max-width: 600px;
+  height: 82vh;
+  max-height: 750px;
+  aspect-ratio: 4 / 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  background: rgba(10, 31, 107, 0.35);
+  box-shadow: 0 20px 48px rgba(7, 18, 74, 0.45);
+  border: 1px solid rgba(247, 250, 255, 0.12);
+}
+
+.control-panel {
+  width: var(--panel-width);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px 36px;
+  border-radius: var(--panel-radius);
+  background-color: var(--ultramarine-deep); /* Fallback solid */
+  background-color: rgba(10, 31, 107, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(247, 250, 255, 0.14);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+/* Typography Scale (DESIGN.md Sec. 4) */
+.tagline-badge {
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--sky);
+  text-transform: uppercase;
+}
+
+.screen-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 52px;
+  line-height: 1.08;
+  color: var(--gold);
+  text-shadow: 0 0 24px rgba(255, 239, 168, 0.35);
+}
+
+.screen-desc {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--cloud);
+  line-height: 1.5;
+}
+
+/* Buttons (DESIGN.md Sec. 5) */
+.btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--btn-height);
+  min-height: 64px;
+  padding: 0 32px;
+  border-radius: var(--btn-radius);
+  font-family: var(--font-ui);
+  font-size: 22px;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  outline: none;
+  transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  user-select: none;
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--pearl);
+  outline-offset: 3px;
+}
+
+.btn-primary {
+  background-color: var(--gold);
+  color: var(--ink);
+  box-shadow: 0 8px 24px rgba(255, 216, 107, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(255, 216, 107, 0.45);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  color: var(--pearl);
+  border: 2px solid rgba(247, 250, 255, 0.6);
+}
+
+.btn-secondary:hover {
+  background-color: rgba(247, 250, 255, 0.1);
+  border-color: var(--pearl);
+}
+
+/* 7. Screen Specific Styles */
+
+/* Screen 1: Intro Visual */
+.intro-artwork {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: radial-gradient(ellipse at center, rgba(47, 99, 214, 0.4) 0%, rgba(10, 31, 107, 0.8) 80%);
+}
+
+.intro-portal {
+  position: relative;
+  width: 300px;
+  height: 390px;
+  border-radius: 150px;
+  border: 2px solid var(--gold);
+  box-shadow: 0 0 40px rgba(255, 216, 107, 0.35), inset 0 0 30px rgba(255, 216, 107, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(141, 184, 242, 0.3) 0%, rgba(10, 31, 107, 0.5) 100%);
+  overflow: hidden;
+}
+
+.portal-sparkle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background: var(--gold-glow);
+  clip-path: polygon(50% 0%, 65% 35%, 100% 50%, 65% 65%, 50% 100%, 35% 65%, 0% 50%, 35% 35%);
+  filter: drop-shadow(0 0 8px var(--gold));
+}
+
+.sparkle-1 { top: 25%; left: 30%; transform: scale(1.2); }
+.sparkle-2 { bottom: 30%; right: 25%; transform: scale(0.9); }
+.sparkle-3 { top: 60%; left: 20%; transform: scale(0.8); }
+
+.intro-portal-text {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 26px;
+  color: var(--pearl);
+  text-align: center;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+}
+
+/* Screen 2: Theme Selector Cards (DESIGN.md Sec. 5) */
+.theme-selector-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.theme-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 20px;
+  cursor: pointer;
+  background: rgba(21, 54, 168, 0.4);
+  border: 2px solid rgba(247, 250, 255, 0.2);
+  color: var(--pearl);
+  transition: all 180ms ease;
+  user-select: none;
+  text-align: left;
+}
+
+.theme-card:hover {
+  background: rgba(21, 54, 168, 0.7);
+  border-color: rgba(247, 250, 255, 0.5);
+  transform: translateX(4px);
+}
+
+.theme-card.selected {
+  border-color: var(--gold);
+  background: rgba(21, 54, 168, 0.85);
+  box-shadow: 0 0 20px rgba(255, 216, 107, 0.35);
+}
+
+/* Unique Shapes for Each Theme (DESIGN.md Sec. 5) */
+.theme-card-imajinasi {
+  border-radius: 36px 36px 14px 14px; /* Arch top */
+}
+
+.theme-card-realitas {
+  border-radius: 6px; /* Square minimal corners */
+}
+
+.theme-card-surealis {
+  border-radius: 14px; /* Balanced split horizon */
+}
+
+.theme-card-preview {
+  width: 52px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(247, 250, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.preview-imajinasi {
+  border-radius: 20px 20px 6px 6px;
+  background: linear-gradient(135deg, var(--azure) 0%, var(--gold) 100%);
+}
+
+.preview-realitas {
+  border-radius: 4px;
+  background: var(--paper-cool);
+  border: 1px solid var(--cyan-dark);
+}
+.preview-realitas::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ruby);
+}
+
+.preview-surealis {
+  background: linear-gradient(180deg, var(--sky) 0%, var(--cloud) 50%, var(--azure) 50%, var(--ultramarine-deep) 100%);
+}
+
+.theme-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.theme-card-name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 26px;
+  color: var(--gold);
+  line-height: 1.2;
+}
+
+.theme-card-desc {
+  font-size: 14px;
+  color: var(--cloud);
+}
+
+/* Screen 3: Camera Frame & Oval Guide (DESIGN.md Sec. 5 & 6) */
+.camera-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.camera-preview-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror view (PRD F1) */
+  background: linear-gradient(180deg, #101c4a 0%, #071233 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Oval Guide & Darkened Outer Area */
+.camera-oval-guide {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-oval-cutout {
+  width: 320px;
+  height: 420px;
+  border-radius: 160px / 210px;
+  border: 3px solid var(--gold-glow);
+  box-shadow: 0 0 30px rgba(255, 239, 168, 0.7), 0 0 0 9999px rgba(0, 0, 0, 0.45);
+}
+
+/* Screen 4: Result Poster Pane */
+.result-poster-frame {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+}
+
+.poster-mockup {
+  width: 90%;
+  aspect-ratio: 4 / 5;
+  background: radial-gradient(circle at 50% 40%, var(--ultramarine) 0%, var(--ultramarine-deep) 100%);
+  border: 1px solid rgba(255, 216, 107, 0.35);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(255, 216, 107, 0.2);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30px 20px;
+  text-align: center;
+}
+
+.poster-mockup-face {
+  width: 180px;
+  height: 240px;
+  border-radius: 90px / 120px;
+  border: 2px solid var(--gold-glow);
+  background: radial-gradient(ellipse at center, rgba(141, 184, 242, 0.3) 0%, rgba(10, 31, 107, 0.6) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--pearl);
+  font-family: var(--font-display);
+  font-size: 20px;
+}
+
+.poster-mockup-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 38px;
+  color: var(--gold);
+}
+
+.poster-mockup-caption {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--sky);
+}
+
+/* Footer (DESIGN.md Sec. 5) */
+.app-footer {
+  text-align: center;
+  padding: 16px 0;
+  font-size: 14px;
+  color: rgba(247, 250, 255, 0.65);
+}
+
+/* ==========================================================================
+   8. Responsive Layout: Portrait Mode (DESIGN.md & PRD F7)
+   ========================================================================== */
+@media (max-width: 899px), (orientation: portrait) {
+  .app-container {
+    padding: 16px;
+  }
+
+  .screen.active {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .visual-pane {
+    width: 100%;
+    max-width: 440px;
+    height: auto;
+    max-height: 52vh;
+    aspect-ratio: 4 / 5;
+  }
+
+  .control-panel {
+    width: 100%;
+    max-width: 440px;
+    padding: 24px 20px;
+    gap: 16px;
+  }
+
+  .screen-title {
+    font-size: 38px;
+  }
+
+  .screen-desc {
+    font-size: 16px;
+  }
+
+  .camera-oval-cutout {
+    width: 220px;
+    height: 290px;
+  }
+}
