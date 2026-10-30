@@ -1,11 +1,12 @@
 /**
  * Tiga Dunia Wajahmu - MAX 12
- * app.js - State Machine Alur, Kontrol Keyboard, Kamera & Capture (Fase B / T4)
+ * app.js - State Machine Alur, Kontrol Keyboard, Kamera & Pipeline Generate (Fase B / T5)
  */
 
 import { cropAndMirrorTo4x5, clearCanvas } from './utils.js';
+import { renderImajinasi } from './themes.js';
 
-// 1. Definisi 7 State Resmi (TASKS.md T2, T3, T4)
+// 1. Definisi 7 State Resmi (TASKS.md T2, T3, T4, T5)
 export const STATES = {
   INTRO: 'intro',
   TEMA: 'tema',
@@ -39,8 +40,12 @@ export const state = {
   cameraStream: null,
   cameraError: null,
   uploadedImage: null,
+  posterSeed: null,
+  isGenerating: false,
   // Canvas offscreen "face" untuk menyimpan data wajah 4:5 tanpa distorsi
-  faceCanvas: document.createElement('canvas')
+  faceCanvas: document.createElement('canvas'),
+  // Buffer offscreen untuk render 1080x1350 sebelum disalin ke layar (DESIGN.md Bab 6)
+  bufferCanvas: document.createElement('canvas')
 };
 
 // DOM Elements: Layar & Navigasi
@@ -51,9 +56,10 @@ const themePreviewTitle = document.getElementById('theme-preview-title');
 const resultThemeLabel = document.getElementById('result-theme-label');
 const cameraSubpanels = document.querySelectorAll('.camera-subpanel');
 
-// DOM Elements: Kamera & Canvas Freeze (T3 & T4)
+// DOM Elements: Kamera, Canvas Freeze, dan Canvas Hasil (T3, T4, T5)
 const cameraVideo = document.getElementById('camera-video');
 const cameraFreezeCanvas = document.getElementById('camera-freeze-canvas');
+const resultCanvas = document.getElementById('result-canvas');
 const cameraErrorOverlay = document.getElementById('camera-error-overlay');
 const cameraErrorMessage = document.getElementById('camera-error-message');
 const btnCameraRetry = document.getElementById('btn-camera-retry');
@@ -100,7 +106,6 @@ export async function startCamera() {
   hideCameraError();
   unfreezeCamera();
 
-  // Matikan stream sebelumnya bila masih berjalan
   stopCamera();
 
   const constraints = {
@@ -176,14 +181,12 @@ function unfreezeCamera() {
  */
 export function captureAndFreeze() {
   if (cameraVideo && cameraVideo.videoWidth > 0) {
-    // 1. Potong video ke rasio 4:5 dengan mirror horizontal
     cropAndMirrorTo4x5(cameraVideo, state.faceCanvas, {
       targetWidth: 960,
       targetHeight: 1200,
       mirror: true
     });
 
-    // 2. Salin ke canvas freeze untuk ditampilkan di layar konfirmasi
     if (cameraFreezeCanvas) {
       cameraFreezeCanvas.width = 960;
       cameraFreezeCanvas.height = 1200;
@@ -196,7 +199,6 @@ export function captureAndFreeze() {
     }
   }
 
-  // 3. Matikan kamera segera setelah frame tersimpan
   stopCamera();
 }
 
@@ -276,12 +278,10 @@ export function transitionTo(nextState) {
     return;
   }
 
-  // Bersihkan timer jika meninggalkan countdown/processing
   if (state.status === STATES.HITUNG_MUNDUR || state.status === STATES.MEMPROSES) {
     clearActiveTimers();
   }
 
-  // Lifecycle kamera: jika keluar ke intro/tema/hasil, matikan kamera
   if ([STATES.INTRO, STATES.TEMA, STATES.HASIL].includes(nextState)) {
     stopCamera();
     hideCameraError();
@@ -291,7 +291,9 @@ export function transitionTo(nextState) {
   if (nextState === STATES.INTRO) {
     unfreezeCamera();
     clearCanvas(state.faceCanvas);
+    clearCanvas(state.bufferCanvas);
     clearCanvas(cameraFreezeCanvas);
+    if (resultCanvas) clearCanvas(resultCanvas);
   }
 
   state.status = nextState;
@@ -329,7 +331,7 @@ export function transitionTo(nextState) {
     });
   }
 
-  // 4. Sinkronisasi tampilan teks tema
+  // 4. Sinkronisasi teks tema
   if (resultThemeLabel) {
     resultThemeLabel.textContent = capitalizeFirstLetter(state.selectedTheme);
   }
@@ -384,7 +386,6 @@ function startCountdown() {
       if (countdownNumber) countdownNumber.textContent = count;
     } else {
       clearActiveTimers();
-      // Hitung mundur selesai -> capture frame, crop 4:5, matikan kamera
       captureAndFreeze();
       transitionTo(STATES.SIAP_GENERATE);
     }
@@ -392,15 +393,49 @@ function startCountdown() {
 }
 
 /**
- * Menjalankan proses generate dengan animasi riak air 1.5 detik
+ * Pipeline Generate: Merender poster kanvas 1080x1350 dengan animasi riak air
+ * (TASKS.md T5 & DESIGN.md Bab 6, 7.1)
  */
-function startProcessing() {
+async function startProcessing() {
   if (rippleOverlay) rippleOverlay.classList.add('active');
+  state.isGenerating = true;
 
-  state.processingTimeoutId = setTimeout(() => {
+  // Jalur timer minimal 1.5 detik untuk kepuasan animasi riak (DESIGN.md Sec. 5)
+  const minDelayPromise = new Promise((resolve) => {
+    state.processingTimeoutId = setTimeout(resolve, 1500);
+  });
+
+  try {
+    const seed = Date.now();
+    state.posterSeed = seed;
+
+    // Buffer offscreen canvas (DESIGN.md Bab 6)
+    state.bufferCanvas.width = 1080;
+    state.bufferCanvas.height = 1350;
+
+    // Render tema Imajinasi (atau fallback untuk tema lainnya sebelum T8 & T9)
+    await renderImajinasi(state.bufferCanvas, state.faceCanvas, { seed });
+
+    // Tunggu animasi riak selesai
+    await minDelayPromise;
+
+    // Salin hasil render ke canvas yang tampil di layar
+    if (resultCanvas) {
+      resultCanvas.width = 1080;
+      resultCanvas.height = 1350;
+      const ctx = resultCanvas.getContext('2d');
+      ctx.drawImage(state.bufferCanvas, 0, 0);
+    }
+
     clearActiveTimers();
+    state.isGenerating = false;
     transitionTo(STATES.HASIL);
-  }, 1500);
+  } catch (err) {
+    console.error('Error saat merender tema:', err);
+    clearActiveTimers();
+    state.isGenerating = false;
+    transitionTo(STATES.HASIL);
+  }
 }
 
 /**
