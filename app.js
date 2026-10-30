@@ -1,9 +1,11 @@
 /**
  * Tiga Dunia Wajahmu - MAX 12
- * app.js - State Machine Alur, Kontrol Keyboard, dan Kamera (Fase B / T3)
+ * app.js - State Machine Alur, Kontrol Keyboard, Kamera & Capture (Fase B / T4)
  */
 
-// 1. Definisi 7 State Resmi (TASKS.md T2 & T3)
+import { cropAndMirrorTo4x5, clearCanvas } from './utils.js';
+
+// 1. Definisi 7 State Resmi (TASKS.md T2, T3, T4)
 export const STATES = {
   INTRO: 'intro',
   TEMA: 'tema',
@@ -36,7 +38,9 @@ export const state = {
   processingTimeoutId: null,
   cameraStream: null,
   cameraError: null,
-  uploadedImage: null
+  uploadedImage: null,
+  // Canvas offscreen "face" untuk menyimpan data wajah 4:5 tanpa distorsi
+  faceCanvas: document.createElement('canvas')
 };
 
 // DOM Elements: Layar & Navigasi
@@ -47,8 +51,9 @@ const themePreviewTitle = document.getElementById('theme-preview-title');
 const resultThemeLabel = document.getElementById('result-theme-label');
 const cameraSubpanels = document.querySelectorAll('.camera-subpanel');
 
-// DOM Elements: Kamera & Error Fallback (T3)
+// DOM Elements: Kamera & Canvas Freeze (T3 & T4)
 const cameraVideo = document.getElementById('camera-video');
+const cameraFreezeCanvas = document.getElementById('camera-freeze-canvas');
 const cameraErrorOverlay = document.getElementById('camera-error-overlay');
 const cameraErrorMessage = document.getElementById('camera-error-message');
 const btnCameraRetry = document.getElementById('btn-camera-retry');
@@ -93,11 +98,11 @@ function clearActiveTimers() {
  */
 export async function startCamera() {
   hideCameraError();
+  unfreezeCamera();
 
   // Matikan stream sebelumnya bila masih berjalan
   stopCamera();
 
-  // Constraints resolusi ideal 1280x960, facingMode 'user'
   const constraints = {
     audio: false,
     video: {
@@ -116,7 +121,6 @@ export async function startCamera() {
     try {
       stream = await navigator.mediaDevices.getUserMedia(constraints);
     } catch (err) {
-      // Fallback constraint jika overconstrained
       if (err.name === 'OverconstrainedError') {
         stream = await navigator.mediaDevices.getUserMedia({
           audio: false,
@@ -133,7 +137,6 @@ export async function startCamera() {
       await cameraVideo.play().catch(() => {});
     }
 
-    // Aktifkan tombol capture bila kamera siap
     if (btnCameraCapture) btnCameraCapture.disabled = false;
   } catch (err) {
     console.warn('Gagal membuka kamera:', err);
@@ -156,7 +159,78 @@ export function stopCamera() {
 }
 
 /**
- * Menampilkan pesan error kamera dengan panduan jelas dalam Bahasa Indonesia (PRD F9 & DESIGN.md Sec. 5)
+ * Menampilkan pratinjau live video dan menyembunyikan freeze canvas
+ */
+function unfreezeCamera() {
+  if (cameraFreezeCanvas) {
+    cameraFreezeCanvas.classList.remove('active');
+  }
+  if (cameraVideo) {
+    cameraVideo.classList.remove('hidden');
+  }
+}
+
+/**
+ * Menangkap frame saat ini dari video kamera, memotong ke 4:5 dengan mirror,
+ * dan langsung mematikan kamera (TASKS.md T4 & AGENTS.md Aturan 2, 3, 4)
+ */
+export function captureAndFreeze() {
+  if (cameraVideo && cameraVideo.videoWidth > 0) {
+    // 1. Potong video ke rasio 4:5 dengan mirror horizontal
+    cropAndMirrorTo4x5(cameraVideo, state.faceCanvas, {
+      targetWidth: 960,
+      targetHeight: 1200,
+      mirror: true
+    });
+
+    // 2. Salin ke canvas freeze untuk ditampilkan di layar konfirmasi
+    if (cameraFreezeCanvas) {
+      cameraFreezeCanvas.width = 960;
+      cameraFreezeCanvas.height = 1200;
+      const ctx = cameraFreezeCanvas.getContext('2d');
+      ctx.drawImage(state.faceCanvas, 0, 0);
+      cameraFreezeCanvas.classList.add('active');
+    }
+    if (cameraVideo) {
+      cameraVideo.classList.add('hidden');
+    }
+  }
+
+  // 3. Matikan kamera segera setelah frame tersimpan
+  stopCamera();
+}
+
+/**
+ * Memproses gambar unggahan dari perangkat sebagai cadangan (PRD F9)
+ * @param {HTMLImageElement} img
+ */
+export function processUploadedImage(img) {
+  state.uploadedImage = img;
+
+  cropAndMirrorTo4x5(img, state.faceCanvas, {
+    targetWidth: 960,
+    targetHeight: 1200,
+    mirror: false
+  });
+
+  if (cameraFreezeCanvas) {
+    cameraFreezeCanvas.width = 960;
+    cameraFreezeCanvas.height = 1200;
+    const ctx = cameraFreezeCanvas.getContext('2d');
+    ctx.drawImage(state.faceCanvas, 0, 0);
+    cameraFreezeCanvas.classList.add('active');
+  }
+  if (cameraVideo) {
+    cameraVideo.classList.add('hidden');
+  }
+
+  stopCamera();
+  hideCameraError();
+  transitionTo(STATES.SIAP_GENERATE);
+}
+
+/**
+ * Menampilkan pesan error kamera dalam Bahasa Indonesia (PRD F9 & DESIGN.md Sec. 5)
  * @param {Error} error
  */
 function handleCameraError(error) {
@@ -194,7 +268,6 @@ function hideCameraError() {
 
 /**
  * Transisi State Machine
- * Mengatur tampilan layar, subpanel, overlay, dan aksesibilitas
  * @param {string} nextState
  */
 export function transitionTo(nextState) {
@@ -208,10 +281,17 @@ export function transitionTo(nextState) {
     clearActiveTimers();
   }
 
-  // Manajemen lifecycle kamera: matikan jika meninggalkan alur kamera
+  // Lifecycle kamera: jika keluar ke intro/tema/hasil, matikan kamera
   if ([STATES.INTRO, STATES.TEMA, STATES.HASIL].includes(nextState)) {
     stopCamera();
     hideCameraError();
+  }
+
+  // Jika kembali ke intro (reset), bersihkan memori canvas secara total (AGENTS.md Aturan 2)
+  if (nextState === STATES.INTRO) {
+    unfreezeCamera();
+    clearCanvas(state.faceCanvas);
+    clearCanvas(cameraFreezeCanvas);
   }
 
   state.status = nextState;
@@ -238,7 +318,7 @@ export function transitionTo(nextState) {
     }
   });
 
-  // 3. Atur subpanel di Layar Kamera (kamera / siapGenerate / memproses)
+  // 3. Atur subpanel di Layar Kamera
   if (viewConfig.subpanelId) {
     cameraSubpanels.forEach((subpanel) => {
       if (subpanel.id === viewConfig.subpanelId) {
@@ -260,7 +340,6 @@ export function transitionTo(nextState) {
       break;
 
     case STATES.KAMERA:
-      // Nyalakan kamera saat masuk ke layar kamera
       startCamera();
       if (btnCameraCapture) btnCameraCapture.disabled = false;
       if (btnCameraBack) btnCameraBack.disabled = false;
@@ -271,7 +350,6 @@ export function transitionTo(nextState) {
       break;
 
     case STATES.SIAP_GENERATE:
-      // Di T4, di sini kita freeze frame atau tampilkan hasil jepretan
       if (btnConfirmGenerate) btnConfirmGenerate.disabled = false;
       if (btnConfirmRetake) btnConfirmRetake.disabled = false;
       break;
@@ -290,7 +368,7 @@ export function transitionTo(nextState) {
 }
 
 /**
- * Menjalankan animasi hitung mundur 3-2-1
+ * Menjalankan hitung mundur 3-2-1
  */
 function startCountdown() {
   if (btnCameraCapture) btnCameraCapture.disabled = true;
@@ -306,7 +384,8 @@ function startCountdown() {
       if (countdownNumber) countdownNumber.textContent = count;
     } else {
       clearActiveTimers();
-      // Hitung mundur selesai -> transisi ke konfirmasi siapGenerate (di T4 kamera dimatikan di sini)
+      // Hitung mundur selesai -> capture frame, crop 4:5, matikan kamera
+      captureAndFreeze();
       transitionTo(STATES.SIAP_GENERATE);
     }
   }, 1000);
@@ -420,10 +499,7 @@ if (cameraFileInput) {
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
-        state.uploadedImage = img;
-        hideCameraError();
-        // Langsung lanjut ke konfirmasi foto
-        transitionTo(STATES.SIAP_GENERATE);
+        processUploadedImage(img);
       };
       img.src = event.target.result;
     };
@@ -495,7 +571,6 @@ window.addEventListener('keydown', (e) => {
         break;
 
       case STATES.KAMERA:
-        // Hanya bisa ambil foto bila kamera aktif / tidak ada error
         if (btnCameraCapture && !btnCameraCapture.disabled) {
           transitionTo(STATES.HITUNG_MUNDUR);
         }

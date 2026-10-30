@@ -538,6 +538,22 @@ html, body {
   display: block;
 }
 
+.camera-video.hidden {
+  display: none !important;
+}
+
+.camera-freeze-canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+  background: #000;
+}
+
+.camera-freeze-canvas.active {
+  display: block;
+}
+
 .camera-preview-placeholder {
   width: 100%;
   height: 100%;
