@@ -529,15 +529,83 @@ html, body {
   background: #000;
 }
 
+.camera-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror view (PRD F1 & AGENTS.md Aturan 3) */
+  background: #000;
+  display: block;
+}
+
 .camera-preview-placeholder {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* Mirror view (PRD F1) */
+  transform: scaleX(-1);
   background: linear-gradient(180deg, #101c4a 0%, #071233 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Camera Error & Fallback Overlay (PRD F9 & DESIGN.md Sec. 5) */
+.camera-error-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  text-align: center;
+  background: rgba(10, 31, 107, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 20;
+}
+
+.camera-error-overlay.active {
+  display: flex;
+}
+
+.camera-error-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--ruby);
+  color: var(--ruby);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  box-shadow: 0 0 16px rgba(212, 35, 79, 0.4);
+}
+
+.camera-error-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 32px;
+  color: var(--pearl);
+  margin-bottom: 12px;
+}
+
+.camera-error-message {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--cloud);
+  max-width: 380px;
+  margin-bottom: 24px;
+}
+
+.camera-error-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 280px;
 }
 
 /* Oval Guide & Darkened Outer Area */

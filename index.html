@@ -102,12 +102,27 @@
       <section id="screen-camera" class="screen" aria-labelledby="camera-title">
         <div class="visual-pane">
           <div class="camera-container">
-            <div class="camera-preview-placeholder">
-              <span id="camera-frame-text" style="color: var(--sky); font-size: 16px;">[Pratinjau Kamera]</span>
-            </div>
+            <video id="camera-video" playsinline autoplay muted class="camera-video"></video>
+            
             <div class="camera-oval-guide">
               <div class="camera-oval-cutout"></div>
             </div>
+
+            <!-- Error & Fallback Overlay (PRD F9 & DESIGN.md Sec. 5) -->
+            <div id="camera-error-overlay" class="camera-error-overlay" role="alert" aria-live="assertive">
+              <div class="camera-error-icon" aria-hidden="true">!</div>
+              <h3 class="camera-error-title">Kamera Tidak Bisa Dibuka</h3>
+              <p id="camera-error-message" class="camera-error-message">
+                Izinkan akses kamera lewat ikon gembok di address bar, lalu coba lagi. Atau pilih foto dari perangkat.
+              </p>
+              <div class="camera-error-actions">
+                <button id="btn-camera-retry" class="btn btn-primary" type="button">Coba Lagi</button>
+                <button id="btn-upload-fallback" class="btn btn-secondary" type="button">Pilih Foto</button>
+              </div>
+            </div>
+
+            <!-- Hidden File Input for Device Photo Fallback (F9) -->
+            <input type="file" id="camera-file-input" accept="image/*" style="display: none;" aria-hidden="true">
 
             <!-- Countdown Overlay (State: hitungMundur) -->
             <div id="countdown-overlay" class="countdown-overlay" aria-live="assertive">

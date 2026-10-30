@@ -1,9 +1,9 @@
 /**
  * Tiga Dunia Wajahmu - MAX 12
- * app.js - State Machine Alur & Kontrol Keyboard (Fase B / T2)
+ * app.js - State Machine Alur, Kontrol Keyboard, dan Kamera (Fase B / T3)
  */
 
-// 1. Definisi 7 State Resmi (TASKS.md T2)
+// 1. Definisi 7 State Resmi (TASKS.md T2 & T3)
 export const STATES = {
   INTRO: 'intro',
   TEMA: 'tema',
@@ -33,7 +33,10 @@ export const state = {
   status: STATES.INTRO,
   selectedTheme: 'imajinasi',
   countdownIntervalId: null,
-  processingTimeoutId: null
+  processingTimeoutId: null,
+  cameraStream: null,
+  cameraError: null,
+  uploadedImage: null
 };
 
 // DOM Elements: Layar & Navigasi
@@ -43,9 +46,16 @@ const themeCards = document.querySelectorAll('.theme-card');
 const themePreviewTitle = document.getElementById('theme-preview-title');
 const resultThemeLabel = document.getElementById('result-theme-label');
 const cameraSubpanels = document.querySelectorAll('.camera-subpanel');
-const cameraFrameText = document.getElementById('camera-frame-text');
 
-// DOM Elements: Overlays
+// DOM Elements: Kamera & Error Fallback (T3)
+const cameraVideo = document.getElementById('camera-video');
+const cameraErrorOverlay = document.getElementById('camera-error-overlay');
+const cameraErrorMessage = document.getElementById('camera-error-message');
+const btnCameraRetry = document.getElementById('btn-camera-retry');
+const btnUploadFallback = document.getElementById('btn-upload-fallback');
+const cameraFileInput = document.getElementById('camera-file-input');
+
+// DOM Elements: Overlays (Countdown & Ripple)
 const countdownOverlay = document.getElementById('countdown-overlay');
 const countdownNumber = document.getElementById('countdown-number');
 const rippleOverlay = document.getElementById('ripple-overlay');
@@ -79,23 +89,131 @@ function clearActiveTimers() {
 }
 
 /**
+ * Menyalakan Kamera via getUserMedia (AGENTS.md Aturan 1 & PRD F1)
+ */
+export async function startCamera() {
+  hideCameraError();
+
+  // Matikan stream sebelumnya bila masih berjalan
+  stopCamera();
+
+  // Constraints resolusi ideal 1280x960, facingMode 'user'
+  const constraints = {
+    audio: false,
+    video: {
+      facingMode: 'user',
+      width: { ideal: 1280 },
+      height: { ideal: 960 }
+    }
+  };
+
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error('Kamera tidak didukung di browser ini atau halaman tidak dibuka lewat HTTPS.');
+    }
+
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (err) {
+      // Fallback constraint jika overconstrained
+      if (err.name === 'OverconstrainedError') {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: 'user' }
+        });
+      } else {
+        throw err;
+      }
+    }
+
+    state.cameraStream = stream;
+    if (cameraVideo) {
+      cameraVideo.srcObject = stream;
+      await cameraVideo.play().catch(() => {});
+    }
+
+    // Aktifkan tombol capture bila kamera siap
+    if (btnCameraCapture) btnCameraCapture.disabled = false;
+  } catch (err) {
+    console.warn('Gagal membuka kamera:', err);
+    state.cameraError = err;
+    handleCameraError(err);
+  }
+}
+
+/**
+ * Menghentikan track kamera dan membersihkan video element (AGENTS.md Aturan 2)
+ */
+export function stopCamera() {
+  if (state.cameraStream) {
+    state.cameraStream.getTracks().forEach((track) => track.stop());
+    state.cameraStream = null;
+  }
+  if (cameraVideo) {
+    cameraVideo.srcObject = null;
+  }
+}
+
+/**
+ * Menampilkan pesan error kamera dengan panduan jelas dalam Bahasa Indonesia (PRD F9 & DESIGN.md Sec. 5)
+ * @param {Error} error
+ */
+function handleCameraError(error) {
+  let message = 'Kamera tidak bisa dibuka. Izinkan akses kamera lewat ikon gembok di address bar, lalu coba lagi. Atau pilih foto dari perangkat.';
+
+  if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+    message = 'Akses kamera ditolak. Silakan klik ikon gembok atau setelan di address bar browser Anda, ubah izin kamera menjadi "Izinkan", lalu klik "Coba Lagi". Anda juga bisa memilih foto langsung dari perangkat.';
+  } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+    message = 'Kamera tidak ditemukan di perangkat Anda. Pastikan kamera terpasang dengan baik atau pilih foto dari perangkat.';
+  } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+    message = 'Kamera sedang digunakan oleh aplikasi lain (seperti Zoom, Google Meet, atau tab lain). Tutup aplikasi tersebut, lalu klik "Coba Lagi".';
+  } else if (error.message && error.message.includes('HTTPS')) {
+    message = error.message;
+  }
+
+  if (cameraErrorMessage) {
+    cameraErrorMessage.textContent = message;
+  }
+  if (cameraErrorOverlay) {
+    cameraErrorOverlay.classList.add('active');
+  }
+  if (btnCameraCapture) {
+    btnCameraCapture.disabled = true;
+  }
+}
+
+function hideCameraError() {
+  if (cameraErrorOverlay) {
+    cameraErrorOverlay.classList.remove('active');
+  }
+  if (btnCameraCapture) {
+    btnCameraCapture.disabled = false;
+  }
+}
+
+/**
  * Transisi State Machine
  * Mengatur tampilan layar, subpanel, overlay, dan aksesibilitas
  * @param {string} nextState
  */
 export function transitionTo(nextState) {
-  // Validasi state tujuan
   if (!Object.values(STATES).includes(nextState)) {
     console.error(`Invalid state transition: ${nextState}`);
     return;
   }
 
-  // Jika meninggalkan state countdown/processing, bersihkan timer
+  // Bersihkan timer jika meninggalkan countdown/processing
   if (state.status === STATES.HITUNG_MUNDUR || state.status === STATES.MEMPROSES) {
     clearActiveTimers();
   }
 
-  const prev = state.status;
+  // Manajemen lifecycle kamera: matikan jika meninggalkan alur kamera
+  if ([STATES.INTRO, STATES.TEMA, STATES.HASIL].includes(nextState)) {
+    stopCamera();
+    hideCameraError();
+  }
+
   state.status = nextState;
 
   const viewConfig = STATE_VIEW_MAP[nextState];
@@ -131,19 +249,19 @@ export function transitionTo(nextState) {
     });
   }
 
-  // 4. Sinkronisasi tampilan teks
+  // 4. Sinkronisasi tampilan teks tema
   if (resultThemeLabel) {
     resultThemeLabel.textContent = capitalizeFirstLetter(state.selectedTheme);
   }
 
-  // 5. Tangani perilaku khusus tiap state
+  // 5. Perilaku khusus tiap state
   switch (nextState) {
     case STATES.INTRO:
-      if (cameraFrameText) cameraFrameText.textContent = '[Pratinjau Kamera]';
       break;
 
     case STATES.KAMERA:
-      if (cameraFrameText) cameraFrameText.textContent = '[Pratinjau Kamera]';
+      // Nyalakan kamera saat masuk ke layar kamera
+      startCamera();
       if (btnCameraCapture) btnCameraCapture.disabled = false;
       if (btnCameraBack) btnCameraBack.disabled = false;
       break;
@@ -153,7 +271,7 @@ export function transitionTo(nextState) {
       break;
 
     case STATES.SIAP_GENERATE:
-      if (cameraFrameText) cameraFrameText.textContent = `[Foto Wajah: ${capitalizeFirstLetter(state.selectedTheme)}]`;
+      // Di T4, di sini kita freeze frame atau tampilkan hasil jepretan
       if (btnConfirmGenerate) btnConfirmGenerate.disabled = false;
       if (btnConfirmRetake) btnConfirmRetake.disabled = false;
       break;
@@ -163,6 +281,7 @@ export function transitionTo(nextState) {
       break;
 
     case STATES.HASIL:
+      stopCamera();
       if (btnDownload) btnDownload.disabled = false;
       if (btnRetake) btnRetake.disabled = false;
       if (btnChangeTheme) btnChangeTheme.disabled = false;
@@ -187,7 +306,7 @@ function startCountdown() {
       if (countdownNumber) countdownNumber.textContent = count;
     } else {
       clearActiveTimers();
-      // Hitung mundur selesai -> ambil frame (F4) -> transisi ke konfirmasi siapGenerate
+      // Hitung mundur selesai -> transisi ke konfirmasi siapGenerate (di T4 kamera dimatikan di sini)
       transitionTo(STATES.SIAP_GENERATE);
     }
   }, 1000);
@@ -199,7 +318,6 @@ function startCountdown() {
 function startProcessing() {
   if (rippleOverlay) rippleOverlay.classList.add('active');
 
-  // Animasi proses 1.5 detik (sesuai DESIGN.md Sec. 5)
   state.processingTimeoutId = setTimeout(() => {
     clearActiveTimers();
     transitionTo(STATES.HASIL);
@@ -285,6 +403,34 @@ if (btnCameraBack) {
   btnCameraBack.addEventListener('click', () => transitionTo(STATES.TEMA));
 }
 
+// Error & Fallback Tombol (T3 / F9)
+if (btnCameraRetry) {
+  btnCameraRetry.addEventListener('click', () => startCamera());
+}
+if (btnUploadFallback && cameraFileInput) {
+  btnUploadFallback.addEventListener('click', () => cameraFileInput.click());
+}
+
+if (cameraFileInput) {
+  cameraFileInput.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        state.uploadedImage = img;
+        hideCameraError();
+        // Langsung lanjut ke konfirmasi foto
+        transitionTo(STATES.SIAP_GENERATE);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 // Layar 3 (Sub: Siap Generate)
 if (btnConfirmGenerate) {
   btnConfirmGenerate.addEventListener('click', () => transitionTo(STATES.MEMPROSES));
@@ -306,7 +452,7 @@ if (btnChangeTheme) {
   btnChangeTheme.addEventListener('click', () => transitionTo(STATES.TEMA));
 }
 
-// Klik pada Step Dots (memudahkan inspeksi langsung)
+// Klik pada Step Dots
 stepDots.forEach((dot) => {
   dot.style.cursor = 'pointer';
   dot.addEventListener('click', () => {
@@ -322,22 +468,19 @@ stepDots.forEach((dot) => {
 
 // ==========================================================================
 // Kontrol Keyboard (PRD F6 & AGENTS.md Aturan 7)
-// Spasi: Aksi utama layar aktif
-// Esc: Reset ke Intro
-// Arrow Keys (di Layar Tema): Ganti pilihan tema
 // ==========================================================================
 window.addEventListener('keydown', (e) => {
   // 1. Tombol ESC: Selalu reset ke Intro dari mana saja
   if (e.key === 'Escape') {
     e.preventDefault();
     clearActiveTimers();
+    stopCamera();
     transitionTo(STATES.INTRO);
     return;
   }
 
   // 2. Tombol SPASI: Aksi utama layar aktif
   if (e.key === ' ' || e.code === 'Space') {
-    // Jangan hijack jika pengguna sedang mengetik di input/textarea
     if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
 
     e.preventDefault();
@@ -352,7 +495,10 @@ window.addEventListener('keydown', (e) => {
         break;
 
       case STATES.KAMERA:
-        transitionTo(STATES.HITUNG_MUNDUR);
+        // Hanya bisa ambil foto bila kamera aktif / tidak ada error
+        if (btnCameraCapture && !btnCameraCapture.disabled) {
+          transitionTo(STATES.HITUNG_MUNDUR);
+        }
         break;
 
       case STATES.SIAP_GENERATE:
@@ -367,13 +513,12 @@ window.addEventListener('keydown', (e) => {
 
       case STATES.HITUNG_MUNDUR:
       case STATES.MEMPROSES:
-        // Sedang berlangsung, abaikan Spasi
         break;
     }
     return;
   }
 
-  // 3. Tombol Panah Kiri/Kanan/Atas/Bawah pada Layar Tema
+  // 3. Tombol Panah pada Layar Tema
   if (state.status === STATES.TEMA) {
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
       e.preventDefault();
