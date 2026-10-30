@@ -98,24 +98,62 @@
         </div>
       </section>
 
-      <!-- Layar 3: Kamera -->
+      <!-- Layar 3: Kamera (Mencakup state: kamera, hitungMundur, siapGenerate, memproses) -->
       <section id="screen-camera" class="screen" aria-labelledby="camera-title">
         <div class="visual-pane">
           <div class="camera-container">
             <div class="camera-preview-placeholder">
-              <span style="color: var(--sky); font-size: 16px;">[Pratinjau Kamera]</span>
+              <span id="camera-frame-text" style="color: var(--sky); font-size: 16px;">[Pratinjau Kamera]</span>
             </div>
             <div class="camera-oval-guide">
               <div class="camera-oval-cutout"></div>
             </div>
+
+            <!-- Countdown Overlay (State: hitungMundur) -->
+            <div id="countdown-overlay" class="countdown-overlay" aria-live="assertive">
+              <span id="countdown-number" class="countdown-number">3</span>
+            </div>
+
+            <!-- Ripple Overlay (State: memproses) -->
+            <div id="ripple-overlay" class="ripple-overlay" aria-live="polite">
+              <div class="ripple-stage">
+                <span class="ripple-ring"></span>
+                <span class="ripple-ring"></span>
+                <span class="ripple-ring"></span>
+              </div>
+              <span class="processing-label">Meracik duniamu...</span>
+            </div>
           </div>
         </div>
+
         <div class="control-panel">
-          <h2 id="camera-title" class="screen-title">Kamera</h2>
-          <p class="screen-desc">Pas-kan wajahmu di dalam oval.</p>
-          <div class="btn-group">
-            <button id="btn-camera-capture" class="btn btn-primary" type="button">Ambil Foto</button>
-            <button id="btn-camera-back" class="btn btn-secondary" type="button">Kembali</button>
+          <!-- Sub-panel State: kamera -->
+          <div id="subpanel-camera" class="camera-subpanel active">
+            <h2 id="camera-title" class="screen-title">Kamera</h2>
+            <p class="screen-desc">Pas-kan wajahmu di dalam oval.</p>
+            <div class="btn-group">
+              <button id="btn-camera-capture" class="btn btn-primary" type="button">Ambil Foto</button>
+              <button id="btn-camera-back" class="btn btn-secondary" type="button">Kembali</button>
+            </div>
+          </div>
+
+          <!-- Sub-panel State: siapGenerate (Konfirmasi) -->
+          <div id="subpanel-confirm" class="camera-subpanel">
+            <h2 id="confirm-title" class="screen-title">Sudah pas?</h2>
+            <p class="screen-desc">Tekan Generate untuk meracik duniamu.</p>
+            <div class="btn-group">
+              <button id="btn-confirm-generate" class="btn btn-primary" type="button">Generate</button>
+              <button id="btn-confirm-retake" class="btn btn-secondary" type="button">Ulangi</button>
+            </div>
+          </div>
+
+          <!-- Sub-panel State: memproses -->
+          <div id="subpanel-processing" class="camera-subpanel">
+            <h2 id="processing-title" class="screen-title">Meracik duniamu</h2>
+            <p class="screen-desc">Menyatukan elemen visual dan dimensi wajahmu...</p>
+            <div class="btn-group">
+              <button class="btn btn-primary" type="button" disabled>Memproses...</button>
+            </div>
           </div>
         </div>
       </section>

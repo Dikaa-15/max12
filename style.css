@@ -345,6 +345,15 @@ html, body {
   transform: translateY(0);
 }
 
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 .btn-secondary {
   background-color: transparent;
   color: var(--pearl);
@@ -547,6 +556,118 @@ html, body {
   border-radius: 160px / 210px;
   border: 3px solid var(--gold-glow);
   box-shadow: 0 0 30px rgba(255, 239, 168, 0.7), 0 0 0 9999px rgba(0, 0, 0, 0.45);
+}
+
+/* Countdown Overlay (DESIGN.md Sec. 5) */
+.countdown-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.countdown-overlay.active {
+  display: flex;
+}
+
+.countdown-number {
+  font-family: var(--font-display);
+  font-size: 140px;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--gold);
+  text-shadow: 0 0 40px rgba(255, 239, 168, 0.9), 0 0 80px rgba(255, 216, 107, 0.6);
+  animation: countdownPulse 1s ease-in-out infinite;
+}
+
+@keyframes countdownPulse {
+  0%   { transform: scale(0.6); opacity: 0; }
+  25%  { transform: scale(1.15); opacity: 1; }
+  75%  { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.2; }
+}
+
+/* Ripple Animation Overlay (DESIGN.md Sec. 1 & Sec. 5) */
+.ripple-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 15;
+  background: rgba(10, 31, 107, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.ripple-overlay.active {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.ripple-stage {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ripple-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid var(--gold-glow);
+  box-shadow: 0 0 24px rgba(255, 216, 107, 0.6);
+  animation: rippleExpand 1.5s cubic-bezier(0.1, 0.8, 0.2, 1) infinite;
+}
+
+.ripple-ring:nth-child(2) {
+  animation-delay: 0.35s;
+}
+
+.ripple-ring:nth-child(3) {
+  animation-delay: 0.7s;
+}
+
+@keyframes rippleExpand {
+  0% {
+    width: 0;
+    height: 0;
+    opacity: 0.9;
+  }
+  100% {
+    width: 480px;
+    height: 480px;
+    opacity: 0;
+  }
+}
+
+.processing-label {
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 32px;
+  color: var(--gold);
+  text-shadow: 0 0 24px rgba(255, 239, 168, 0.7);
+  letter-spacing: 0.04em;
+}
+
+/* Sub-panels in Camera Screen */
+.camera-subpanel {
+  display: none;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.camera-subpanel.active {
+  display: flex;
 }
 
 /* Screen 4: Result Poster Pane */

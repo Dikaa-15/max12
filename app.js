@@ -1,78 +1,217 @@
 /**
  * Tiga Dunia Wajahmu - MAX 12
- * app.js - State Machine Alur & Navigasi Layar (Fase B / T1)
+ * app.js - State Machine Alur & Kontrol Keyboard (Fase B / T2)
  */
 
-// Mapping ID layar ke nomor langkah (1-4)
-const SCREEN_STEP_MAP = {
-  'screen-intro': 1,
-  'screen-theme': 2,
-  'screen-camera': 3,
-  'screen-result': 4
+// 1. Definisi 7 State Resmi (TASKS.md T2)
+export const STATES = {
+  INTRO: 'intro',
+  TEMA: 'tema',
+  KAMERA: 'kamera',
+  HITUNG_MUNDUR: 'hitungMundur',
+  SIAP_GENERATE: 'siapGenerate',
+  MEMPROSES: 'memproses',
+  HASIL: 'hasil'
 };
 
-// State sesi sederhana
-const state = {
-  currentScreen: 'screen-intro',
-  selectedTheme: 'imajinasi'
+// Urutan tema yang tersedia
+const AVAILABLE_THEMES = ['imajinasi', 'realitas', 'surealis'];
+
+// Mapping State ke Screen ID dan Nomor Langkah (1-4)
+const STATE_VIEW_MAP = {
+  [STATES.INTRO]:         { screenId: 'screen-intro', step: 1 },
+  [STATES.TEMA]:          { screenId: 'screen-theme', step: 2 },
+  [STATES.KAMERA]:        { screenId: 'screen-camera', step: 3, subpanelId: 'subpanel-camera' },
+  [STATES.HITUNG_MUNDUR]: { screenId: 'screen-camera', step: 3, subpanelId: 'subpanel-camera' },
+  [STATES.SIAP_GENERATE]: { screenId: 'screen-camera', step: 3, subpanelId: 'subpanel-confirm' },
+  [STATES.MEMPROSES]:     { screenId: 'screen-camera', step: 3, subpanelId: 'subpanel-processing' },
+  [STATES.HASIL]:         { screenId: 'screen-result', step: 4 }
 };
 
-// DOM Elements
+// State Aplikasi
+export const state = {
+  status: STATES.INTRO,
+  selectedTheme: 'imajinasi',
+  countdownIntervalId: null,
+  processingTimeoutId: null
+};
+
+// DOM Elements: Layar & Navigasi
 const screens = document.querySelectorAll('.screen');
 const stepDots = document.querySelectorAll('.step-dot');
 const themeCards = document.querySelectorAll('.theme-card');
 const themePreviewTitle = document.getElementById('theme-preview-title');
 const resultThemeLabel = document.getElementById('result-theme-label');
+const cameraSubpanels = document.querySelectorAll('.camera-subpanel');
+const cameraFrameText = document.getElementById('camera-frame-text');
 
-// Tombol navigasi
+// DOM Elements: Overlays
+const countdownOverlay = document.getElementById('countdown-overlay');
+const countdownNumber = document.getElementById('countdown-number');
+const rippleOverlay = document.getElementById('ripple-overlay');
+
+// DOM Elements: Tombol-tombol Aksi
 const btnStart = document.getElementById('btn-start');
 const btnThemeNext = document.getElementById('btn-theme-next');
 const btnThemeBack = document.getElementById('btn-theme-back');
 const btnCameraCapture = document.getElementById('btn-camera-capture');
 const btnCameraBack = document.getElementById('btn-camera-back');
+const btnConfirmGenerate = document.getElementById('btn-confirm-generate');
+const btnConfirmRetake = document.getElementById('btn-confirm-retake');
+const btnDownload = document.getElementById('btn-download');
 const btnRetake = document.getElementById('btn-retake');
 const btnChangeTheme = document.getElementById('btn-change-theme');
-const btnDownload = document.getElementById('btn-download');
 
 /**
- * Berpindah ke layar target dan memperbarui indikator langkah
- * @param {string} screenId
+ * Menghentikan semua timer aktif (countdown dan proses generate)
  */
-export function goToScreen(screenId) {
-  const targetScreen = document.getElementById(screenId);
-  if (!targetScreen) return;
+function clearActiveTimers() {
+  if (state.countdownIntervalId) {
+    clearInterval(state.countdownIntervalId);
+    state.countdownIntervalId = null;
+  }
+  if (state.processingTimeoutId) {
+    clearTimeout(state.processingTimeoutId);
+    state.processingTimeoutId = null;
+  }
+  if (countdownOverlay) countdownOverlay.classList.remove('active');
+  if (rippleOverlay) rippleOverlay.classList.remove('active');
+}
 
-  // Nonaktifkan semua layar
+/**
+ * Transisi State Machine
+ * Mengatur tampilan layar, subpanel, overlay, dan aksesibilitas
+ * @param {string} nextState
+ */
+export function transitionTo(nextState) {
+  // Validasi state tujuan
+  if (!Object.values(STATES).includes(nextState)) {
+    console.error(`Invalid state transition: ${nextState}`);
+    return;
+  }
+
+  // Jika meninggalkan state countdown/processing, bersihkan timer
+  if (state.status === STATES.HITUNG_MUNDUR || state.status === STATES.MEMPROSES) {
+    clearActiveTimers();
+  }
+
+  const prev = state.status;
+  state.status = nextState;
+
+  const viewConfig = STATE_VIEW_MAP[nextState];
+  if (!viewConfig) return;
+
+  // 1. Tampilkan layar yang sesuai
   screens.forEach((screen) => {
-    screen.classList.remove('active');
+    if (screen.id === viewConfig.screenId) {
+      screen.classList.add('active');
+    } else {
+      screen.classList.remove('active');
+    }
   });
 
-  // Aktifkan layar tujuan
-  targetScreen.classList.add('active');
-  state.currentScreen = screenId;
-
-  // Perbarui indikator langkah
-  const stepNumber = SCREEN_STEP_MAP[screenId] || 1;
+  // 2. Perbarui indikator langkah di header
   stepDots.forEach((dot) => {
     const dotStep = parseInt(dot.getAttribute('data-step'), 10);
-    if (dotStep === stepNumber) {
+    if (dotStep === viewConfig.step) {
       dot.classList.add('active');
     } else {
       dot.classList.remove('active');
     }
   });
 
-  // Sinkronisasi teks tema di layar hasil
+  // 3. Atur subpanel di Layar Kamera (kamera / siapGenerate / memproses)
+  if (viewConfig.subpanelId) {
+    cameraSubpanels.forEach((subpanel) => {
+      if (subpanel.id === viewConfig.subpanelId) {
+        subpanel.classList.add('active');
+      } else {
+        subpanel.classList.remove('active');
+      }
+    });
+  }
+
+  // 4. Sinkronisasi tampilan teks
   if (resultThemeLabel) {
     resultThemeLabel.textContent = capitalizeFirstLetter(state.selectedTheme);
   }
+
+  // 5. Tangani perilaku khusus tiap state
+  switch (nextState) {
+    case STATES.INTRO:
+      if (cameraFrameText) cameraFrameText.textContent = '[Pratinjau Kamera]';
+      break;
+
+    case STATES.KAMERA:
+      if (cameraFrameText) cameraFrameText.textContent = '[Pratinjau Kamera]';
+      if (btnCameraCapture) btnCameraCapture.disabled = false;
+      if (btnCameraBack) btnCameraBack.disabled = false;
+      break;
+
+    case STATES.HITUNG_MUNDUR:
+      startCountdown();
+      break;
+
+    case STATES.SIAP_GENERATE:
+      if (cameraFrameText) cameraFrameText.textContent = `[Foto Wajah: ${capitalizeFirstLetter(state.selectedTheme)}]`;
+      if (btnConfirmGenerate) btnConfirmGenerate.disabled = false;
+      if (btnConfirmRetake) btnConfirmRetake.disabled = false;
+      break;
+
+    case STATES.MEMPROSES:
+      startProcessing();
+      break;
+
+    case STATES.HASIL:
+      if (btnDownload) btnDownload.disabled = false;
+      if (btnRetake) btnRetake.disabled = false;
+      if (btnChangeTheme) btnChangeTheme.disabled = false;
+      break;
+  }
+}
+
+/**
+ * Menjalankan animasi hitung mundur 3-2-1
+ */
+function startCountdown() {
+  if (btnCameraCapture) btnCameraCapture.disabled = true;
+  if (btnCameraBack) btnCameraBack.disabled = true;
+
+  let count = 3;
+  if (countdownNumber) countdownNumber.textContent = count;
+  if (countdownOverlay) countdownOverlay.classList.add('active');
+
+  state.countdownIntervalId = setInterval(() => {
+    count -= 1;
+    if (count > 0) {
+      if (countdownNumber) countdownNumber.textContent = count;
+    } else {
+      clearActiveTimers();
+      // Hitung mundur selesai -> ambil frame (F4) -> transisi ke konfirmasi siapGenerate
+      transitionTo(STATES.SIAP_GENERATE);
+    }
+  }, 1000);
+}
+
+/**
+ * Menjalankan proses generate dengan animasi riak air 1.5 detik
+ */
+function startProcessing() {
+  if (rippleOverlay) rippleOverlay.classList.add('active');
+
+  // Animasi proses 1.5 detik (sesuai DESIGN.md Sec. 5)
+  state.processingTimeoutId = setTimeout(() => {
+    clearActiveTimers();
+    transitionTo(STATES.HASIL);
+  }, 1500);
 }
 
 /**
  * Mengubah tema terpilih
  * @param {string} themeName
  */
-function selectTheme(themeName) {
+export function selectTheme(themeName) {
+  if (!AVAILABLE_THEMES.includes(themeName)) return;
   state.selectedTheme = themeName;
 
   themeCards.forEach((card) => {
@@ -89,55 +228,46 @@ function selectTheme(themeName) {
   if (themePreviewTitle) {
     themePreviewTitle.textContent = capitalizeFirstLetter(themeName);
   }
+  if (resultThemeLabel) {
+    resultThemeLabel.textContent = capitalizeFirstLetter(themeName);
+  }
+}
+
+function cycleTheme(direction) {
+  const currentIndex = AVAILABLE_THEMES.indexOf(state.selectedTheme);
+  let nextIndex = currentIndex + direction;
+  if (nextIndex < 0) nextIndex = AVAILABLE_THEMES.length - 1;
+  if (nextIndex >= AVAILABLE_THEMES.length) nextIndex = 0;
+  selectTheme(AVAILABLE_THEMES[nextIndex]);
 }
 
 function capitalizeFirstLetter(string) {
+  if (!string) return '';
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-// Event Listeners Navigasi
+// ==========================================================================
+// Event Listeners: Mouse / Touch
+// ==========================================================================
+
+// Layar 1: Intro
 if (btnStart) {
-  btnStart.addEventListener('click', () => goToScreen('screen-theme'));
+  btnStart.addEventListener('click', () => transitionTo(STATES.TEMA));
 }
 
+// Layar 2: Tema
 if (btnThemeNext) {
-  btnThemeNext.addEventListener('click', () => goToScreen('screen-camera'));
+  btnThemeNext.addEventListener('click', () => transitionTo(STATES.KAMERA));
 }
-
 if (btnThemeBack) {
-  btnThemeBack.addEventListener('click', () => goToScreen('screen-intro'));
+  btnThemeBack.addEventListener('click', () => transitionTo(STATES.INTRO));
 }
 
-if (btnCameraCapture) {
-  btnCameraCapture.addEventListener('click', () => goToScreen('screen-result'));
-}
-
-if (btnCameraBack) {
-  btnCameraBack.addEventListener('click', () => goToScreen('screen-theme'));
-}
-
-if (btnRetake) {
-  btnRetake.addEventListener('click', () => goToScreen('screen-camera'));
-}
-
-if (btnChangeTheme) {
-  btnChangeTheme.addEventListener('click', () => goToScreen('screen-theme'));
-}
-
-if (btnDownload) {
-  btnDownload.addEventListener('click', () => {
-    alert(`Unduh poster "${state.selectedTheme}" (fitur penuh pada T6)`);
-  });
-}
-
-// Klik pada kartu tema
 themeCards.forEach((card) => {
   card.addEventListener('click', () => {
     const theme = card.getAttribute('data-theme');
     if (theme) selectTheme(theme);
   });
-
-  // Aksesibilitas keyboard Enter / Spasi
   card.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
@@ -147,13 +277,110 @@ themeCards.forEach((card) => {
   });
 });
 
-// Klik langsung pada indikator langkah (untuk kemudahan pengujian T1)
+// Layar 3: Kamera
+if (btnCameraCapture) {
+  btnCameraCapture.addEventListener('click', () => transitionTo(STATES.HITUNG_MUNDUR));
+}
+if (btnCameraBack) {
+  btnCameraBack.addEventListener('click', () => transitionTo(STATES.TEMA));
+}
+
+// Layar 3 (Sub: Siap Generate)
+if (btnConfirmGenerate) {
+  btnConfirmGenerate.addEventListener('click', () => transitionTo(STATES.MEMPROSES));
+}
+if (btnConfirmRetake) {
+  btnConfirmRetake.addEventListener('click', () => transitionTo(STATES.KAMERA));
+}
+
+// Layar 4: Hasil
+if (btnDownload) {
+  btnDownload.addEventListener('click', () => {
+    alert(`Unduh poster "${state.selectedTheme}" (fitur implementasi penuh pada T6)`);
+  });
+}
+if (btnRetake) {
+  btnRetake.addEventListener('click', () => transitionTo(STATES.KAMERA));
+}
+if (btnChangeTheme) {
+  btnChangeTheme.addEventListener('click', () => transitionTo(STATES.TEMA));
+}
+
+// Klik pada Step Dots (memudahkan inspeksi langsung)
 stepDots.forEach((dot) => {
   dot.style.cursor = 'pointer';
   dot.addEventListener('click', () => {
     const step = parseInt(dot.getAttribute('data-step'), 10);
-    const screenEntries = Object.entries(SCREEN_STEP_MAP);
-    const target = screenEntries.find(([_, val]) => val === step);
-    if (target) goToScreen(target[0]);
+    switch (step) {
+      case 1: transitionTo(STATES.INTRO); break;
+      case 2: transitionTo(STATES.TEMA); break;
+      case 3: transitionTo(STATES.KAMERA); break;
+      case 4: transitionTo(STATES.HASIL); break;
+    }
   });
+});
+
+// ==========================================================================
+// Kontrol Keyboard (PRD F6 & AGENTS.md Aturan 7)
+// Spasi: Aksi utama layar aktif
+// Esc: Reset ke Intro
+// Arrow Keys (di Layar Tema): Ganti pilihan tema
+// ==========================================================================
+window.addEventListener('keydown', (e) => {
+  // 1. Tombol ESC: Selalu reset ke Intro dari mana saja
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    clearActiveTimers();
+    transitionTo(STATES.INTRO);
+    return;
+  }
+
+  // 2. Tombol SPASI: Aksi utama layar aktif
+  if (e.key === ' ' || e.code === 'Space') {
+    // Jangan hijack jika pengguna sedang mengetik di input/textarea
+    if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+
+    e.preventDefault();
+
+    switch (state.status) {
+      case STATES.INTRO:
+        transitionTo(STATES.TEMA);
+        break;
+
+      case STATES.TEMA:
+        transitionTo(STATES.KAMERA);
+        break;
+
+      case STATES.KAMERA:
+        transitionTo(STATES.HITUNG_MUNDUR);
+        break;
+
+      case STATES.SIAP_GENERATE:
+        transitionTo(STATES.MEMPROSES);
+        break;
+
+      case STATES.HASIL:
+        if (btnDownload && !btnDownload.disabled) {
+          btnDownload.click();
+        }
+        break;
+
+      case STATES.HITUNG_MUNDUR:
+      case STATES.MEMPROSES:
+        // Sedang berlangsung, abaikan Spasi
+        break;
+    }
+    return;
+  }
+
+  // 3. Tombol Panah Kiri/Kanan/Atas/Bawah pada Layar Tema
+  if (state.status === STATES.TEMA) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      cycleTheme(1);
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      cycleTheme(-1);
+    }
+  }
 });
