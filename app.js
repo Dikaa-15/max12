@@ -6,6 +6,7 @@
 import { cropAndMirrorTo4x5, clearCanvas } from './utils.js?v=2';
 import { renderImajinasi, renderRealitas, renderSurealis } from './themes.js?v=3';
 import { initSegmenter, isolateSubject } from './segmentation.js?v=1';
+import { stylizeCharacterFace } from './stylization.js?v=1';
 
 // 1. Definisi 7 State Resmi (TASKS.md T2, T3, T4, T5, T7)
 export const STATES = {
@@ -524,20 +525,24 @@ async function startProcessing() {
     state.bufferCanvas.width = 1080;
     state.bufferCanvas.height = 1350;
 
-    // T10A: Isolasi subjek (hapus latar belakang kamar/kasur/dinding secara lokal)
+    // T10A & T10B: Isolasi subjek & Stylization karakter wajah (Cel-shading & Ilustrasi)
     let processedFace = state.faceCanvas;
     try {
       const isolated = await isolateSubject(state.faceCanvas);
       if (isolated && isolated.width > 0) {
-        state.segmentedFaceCanvas.width = isolated.width;
-        state.segmentedFaceCanvas.height = isolated.height;
+        // T10B: Transformasi wajah menjadi ilustrasi karakter 3D (Cel-shading, line art, blush)
+        const stylized = stylizeCharacterFace(isolated, state.selectedTheme);
+        const finalFace = stylized || isolated;
+
+        state.segmentedFaceCanvas.width = finalFace.width;
+        state.segmentedFaceCanvas.height = finalFace.height;
         const sctx = state.segmentedFaceCanvas.getContext('2d');
-        sctx.clearRect(0, 0, isolated.width, isolated.height);
-        sctx.drawImage(isolated, 0, 0);
+        sctx.clearRect(0, 0, finalFace.width, finalFace.height);
+        sctx.drawImage(finalFace, 0, 0);
         processedFace = state.segmentedFaceCanvas;
       }
     } catch (segErr) {
-      console.warn('Isolasi subjek gagal, menggunakan frame asli:', segErr);
+      console.warn('Isolasi subjek atau stylization gagal, menggunakan frame asli:', segErr);
     }
 
     if (state.selectedTheme === 'realitas') {

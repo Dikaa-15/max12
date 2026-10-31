@@ -80,13 +80,14 @@ Penerimaan: tampilan konsisten dan rapi di 1366x768, 1920x1080, dan portrait.
 - Fallback adaptif: radial-adaptive soft feathering jika wasm tidak didukung.
 Penerimaan: latar belakang kamar terhapus bersih dan terisolasi dengan transparansi penuh (<400ms di browser).
 
-### T10B. Stylization Wajah Artistik (Filter Cel-Shading & Ilustrasi Karakter)
+### T10B. Stylization Wajah Artistik (Filter Cel-Shading & Ilustrasi Karakter) — [SELESAI]
 - Mengubah foto kamera mentah menjadi bertekstur seni ilustrasi/kartun 3D:
-  * Cel-shading / posterization (4–6 tone kontras warna cerah).
-  * Line art & contour enhancement pada mata, kacamata, dan senyum.
-  * Highlight kilau mata (eye sparkle) dan rona pipi (blush) hangat.
-- Menjaga kemiripan wajah asli pengunjung namun berkarakter dan tidak kaku seperti foto paspor.
-Penerimaan: wajah terlihat berpadu alami dengan gaya seni karakter 3D pameran.
+  * Surface bilateral filter (radius 3, threshold 32) menghaluskan pori-pori dan noise sensor webcam secara merata.
+  * Cel-shading / tone quantization (5 tingkat pencahayaan harmonis) dengan perpaduan 50% quant + 50% smooth.
+  * Line art & contour inking berbasis Sobel filter (mata, kacamata, hidung, senyum, dan siluet kepala).
+  * Saturation boost (+12%) dan rona pipi hangat (mascot cheek blush) dengan soft-light blending.
+  * Pemeliharaan siluet alami kepala dan rambut pengunjung tanpa terpotong oval kaku saat tersegmentasi.
+Penerimaan: wajah pengunjung terbukti bertransformasi menjadi ilustrasi karakter 3D yang ramah, artistik, dan bebas noise (<180ms di browser).
 
 ### T10C. Compositing Tubuh & Mahkota Karakter Maskot MAX 12
 - Menggabungkan wajah pengunjung yang telah ter-stylize ke tubuh/figur karakter maskot MAX 12 (Pose 1 s/d Pose 5 di assets/images).

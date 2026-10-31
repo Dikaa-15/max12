@@ -102,43 +102,62 @@ export function createFeatheredFace(sourceFaceCanvas, targetWidth = 640, targetH
     ctx.fillRect(0, 0, targetWidth, targetHeight);
   }
 
-  // 2. Terapkan Mask Elips dengan Feathering via destination-in
+  // 2. Terapkan Mask Elips atau Bottom Fade via destination-in
   ctx.save();
   ctx.globalCompositeOperation = 'destination-in';
 
-  // Buat kanvas mask sementara untuk gradien elips
-  const maskCanvas = document.createElement('canvas');
-  maskCanvas.width = targetWidth;
-  maskCanvas.height = targetHeight;
-  const mctx = maskCanvas.getContext('2d');
+  let isSegmented = false;
+  try {
+    const cornerAlpha = ctx.getImageData(2, 2, 1, 1).data[3];
+    const topCornerAlpha = ctx.getImageData(targetWidth - 3, 2, 1, 1).data[3];
+    if (cornerAlpha === 0 && topCornerAlpha === 0) {
+      isSegmented = true;
+    }
+  } catch (e) {
+    // Fallback jika canvas tainted
+  }
 
-  const cx = targetWidth / 2;
-  const cy = targetHeight / 2;
+  if (isSegmented) {
+    // Pertahankan bentuk rambut & siluet kepala alami karakter yang telah terisolasi
+    // Hanya berikan feathering gradien lembut pada bagian torso/bawah agar berpadu halus
+    const fadeGrad = ctx.createLinearGradient(0, targetHeight - 140, 0, targetHeight);
+    fadeGrad.addColorStop(0, 'rgba(0,0,0,1)');
+    fadeGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = fadeGrad;
+    ctx.fillRect(0, 0, targetWidth, targetHeight);
+  } else {
+    // Fallback: Terapkan Mask Elips jika foto belum tersegmentasi (kamar belum terhapus)
+    const maskCanvas = document.createElement('canvas');
+    maskCanvas.width = targetWidth;
+    maskCanvas.height = targetHeight;
+    const mctx = maskCanvas.getContext('2d');
 
-  // Normalisasi radius elips dengan scale
-  mctx.save();
-  mctx.translate(cx, cy);
-  const scaleY = ry / rx;
-  mctx.scale(1, scaleY);
+    const cx = targetWidth / 2;
+    const cy = targetHeight / 2;
 
-  const grad = mctx.createRadialGradient(0, 0, rx - featherRadius, 0, 0, rx);
-  grad.addColorStop(0, 'rgba(0,0,0,1)');
-  grad.addColorStop(0.7, 'rgba(0,0,0,0.8)');
-  grad.addColorStop(1, 'rgba(0,0,0,0)');
+    // Normalisasi radius elips dengan scale
+    mctx.save();
+    mctx.translate(cx, cy);
+    const scaleY = ry / rx;
+    mctx.scale(1, scaleY);
 
-  mctx.fillStyle = grad;
-  mctx.beginPath();
-  mctx.arc(0, 0, rx, 0, Math.PI * 2);
-  mctx.fill();
-  mctx.restore();
+    const grad = mctx.createRadialGradient(0, 0, rx - featherRadius, 0, 0, rx);
+    grad.addColorStop(0, 'rgba(0,0,0,1)');
+    grad.addColorStop(0.7, 'rgba(0,0,0,0.8)');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
 
-  // Aplikasikan mask
-  ctx.drawImage(maskCanvas, 0, 0);
+    mctx.fillStyle = grad;
+    mctx.beginPath();
+    mctx.arc(0, 0, rx, 0, Math.PI * 2);
+    mctx.fill();
+    mctx.restore();
+
+    // Aplikasikan mask
+    ctx.drawImage(maskCanvas, 0, 0);
+    clearCanvas(maskCanvas);
+  }
+
   ctx.restore();
-
-  // Bersihkan mask sementara
-  clearCanvas(maskCanvas);
-
   return canvas;
 }
 
