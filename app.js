@@ -550,11 +550,36 @@ if (btnConfirmRetake) {
   btnConfirmRetake.addEventListener('click', () => transitionTo(STATES.KAMERA));
 }
 
-// Layar 4: Hasil
+/**
+ * Mengunduh poster hasil dalam format PNG resolusi 1080x1350
+ * dengan nama file: tiga-dunia-wajahmu-<tema>.png (TASKS.md T6 & PRD F5)
+ */
+export function downloadPoster() {
+  const canvas = resultCanvas || state.bufferCanvas;
+  if (!canvas || canvas.width === 0) return;
+
+  const filename = `tiga-dunia-wajahmu-${state.selectedTheme}.png`;
+
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Bebaskan object URL dari memori setelah unduhan dimulai
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }, 'image/png');
+}
+
+// Layar 4: Hasil (T6)
 if (btnDownload) {
-  btnDownload.addEventListener('click', () => {
-    alert(`Unduh poster "${state.selectedTheme}" (fitur implementasi penuh pada T6)`);
-  });
+  btnDownload.addEventListener('click', downloadPoster);
 }
 if (btnRetake) {
   btnRetake.addEventListener('click', () => transitionTo(STATES.KAMERA));
