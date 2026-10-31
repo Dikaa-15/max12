@@ -72,9 +72,36 @@ Penerimaan: double exposure pulau melayang kristal, masking oval halus feathered
 - Kursor otomatis tersembunyi saat idle 3 detik untuk mode pameran.
 Penerimaan: tampilan konsisten dan rapi di 1366x768, 1920x1080, dan portrait.
 
+## Fase C2: Transformasi Karakter Hibrida (Opsi 3) — Wajah Menjadi Karakter MAX 12
+
+### T10A. Segmentasi Wajah & Isolasi Subjek (Hapus Latar Kamar)
+- Memisahkan wajah, rambut, dan siluet kepala pengunjung secara bersih dari latar belakang ruangan (kasur/dinding/bantal).
+- Pipeline segmentasi lokal berbasis browser (MediaPipe / contour segmentation dengan alpha feathering halus).
+- Fallback adaptif: bila perangkat lambat/membatasi wasm, gunakan radial-adaptive skin/luminance isolation yang rapi.
+Penerimaan: wajah dan rambut terisolasi tanpa latar kamar/bantal yang mengganggu.
+
+### T10B. Stylization Wajah Artistik (Filter Cel-Shading & Ilustrasi Karakter)
+- Mengubah foto kamera mentah menjadi bertekstur seni ilustrasi/kartun 3D:
+  * Cel-shading / posterization (4–6 tone kontras warna cerah).
+  * Line art & contour enhancement pada mata, kacamata, dan senyum.
+  * Highlight kilau mata (eye sparkle) dan rona pipi (blush) hangat.
+- Menjaga kemiripan wajah asli pengunjung namun berkarakter dan tidak kaku seperti foto paspor.
+Penerimaan: wajah terlihat berpadu alami dengan gaya seni karakter 3D pameran.
+
+### T10C. Compositing Tubuh & Mahkota Karakter Maskot MAX 12
+- Menggabungkan wajah pengunjung yang telah ter-stylize ke tubuh/figur karakter maskot MAX 12 (Pose 1 s/d Pose 5 di assets/images).
+- Melingkari kepala dengan mahkota kelopak bunga matahari khas maskot dan kerah jas putih elegan.
+- Menyesuaikan pose tubuh sesuai pose yang dipilih pengunjung di bar inspirasi Layar Kamera (Tenang, Kagum, Merenung, Ceria, Bebas).
+Penerimaan: figur karakter tampak utuh, proporsional, dan hidup sebagai maskot MAX 12.
+
+### T10D. Adaptasi 3 Dunia Karakter Tematik (Imajinasi, Realitas, Surealis)
+- **Tema 1: Imajinasi**: Karakter peri kaca bercahaya kosmik, mahkota kelopak kaca kristal (`37.webp`), sayap gelembung air (`12.webp`), dan partikel nebula emas.
+- **Tema 2: Realitas**: Karakter kurator galeri seni berwibawa, balutan monokrom gelatin silver terkalibrasi, aksen ruby dot, dan bunga teratai alami (`35.webp`).
+- **Tema 3: Surealis**: Karakter penjelajah pulau melayang, berdiri anggun di atas pulau Laputa kristal (`36.webp`), refleksi etereal dua alam, dan tetesan air kristal.
+Penerimaan: setiap tema menghasilkan poster karakter yang kaya cerita, tidak monoton, dan memukau pada resolusi 1080x1350.
+
 ### T11. Cadangan unggah foto (30 menit)
-- Bila kamera gagal, tampilkan opsi pilih foto dari perangkat; lewat jalur
-  crop yang sama.
+- Bila kamera gagal, tampilkan opsi pilih foto dari perangkat; lewat jalur crop dan segmentasi yang sama.
 Penerimaan: seluruh alur bisa diselesaikan tanpa kamera.
 
 ## Fase D: Rilis (31 Okt sore)
