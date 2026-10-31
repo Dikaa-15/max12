@@ -10,7 +10,7 @@
   <link rel="preload" href="assets/fonts/cormorant-garamond-italic-600.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/plus-jakarta-sans.woff2" as="font" type="font/woff2" crossorigin>
   
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
   <!-- Ambient Animated Background (DESIGN.md Sec. 5) -->
@@ -197,6 +197,18 @@
     <footer class="app-footer">
       <p>Fotomu diproses di perangkat ini dan tidak diunggah</p>
     </footer>
+  </div>
+
+  <!-- Modal Peringatan Idle (PRD F7 & DESIGN.md Sec. 5) -->
+  <div id="idle-warning-overlay" class="idle-warning-overlay" role="alertdialog" aria-modal="true" aria-labelledby="idle-title" aria-describedby="idle-desc">
+    <div class="idle-card">
+      <div id="idle-counter" class="idle-counter" aria-live="assertive">10</div>
+      <h3 id="idle-title" class="idle-title">Masih di sini?</h3>
+      <p id="idle-desc" class="idle-desc">
+        Sesi akan direset dalam <span id="idle-countdown-text">10</span> detik. Sentuh layar atau tekan tombol apa pun untuk melanjutkan.
+      </p>
+      <button id="btn-idle-stay" class="btn btn-primary" type="button" style="margin-top: 8px;">Saya Masih di Sini</button>
+    </div>
   </div>
 
   <script type="module" src="app.js"></script>

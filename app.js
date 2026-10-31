@@ -1,12 +1,12 @@
 /**
  * Tiga Dunia Wajahmu - MAX 12
- * app.js - State Machine Alur, Kontrol Keyboard, Kamera & Pipeline Generate (Fase B / T5)
+ * app.js - State Machine Alur, Kontrol Keyboard, Kamera, Pipeline Generate & Auto-Reset (Fase B / T7)
  */
 
 import { cropAndMirrorTo4x5, clearCanvas } from './utils.js';
 import { renderImajinasi } from './themes.js';
 
-// 1. Definisi 7 State Resmi (TASKS.md T2, T3, T4, T5)
+// 1. Definisi 7 State Resmi (TASKS.md T2, T3, T4, T5, T7)
 export const STATES = {
   INTRO: 'intro',
   TEMA: 'tema',
@@ -15,6 +15,12 @@ export const STATES = {
   SIAP_GENERATE: 'siapGenerate',
   MEMPROSES: 'memproses',
   HASIL: 'hasil'
+};
+
+// Konfigurasi Auto-Reset Idle (PRD F7 & TASKS.md T7)
+export const IDLE_CONFIG = {
+  idleTimeoutMs: 60000,     // 60 detik tanpa interaksi
+  warningDurationSec: 10   // 10 detik hitung mundur peringatan
 };
 
 // Urutan tema yang tersedia
@@ -37,6 +43,9 @@ export const state = {
   selectedTheme: 'imajinasi',
   countdownIntervalId: null,
   processingTimeoutId: null,
+  idleTimerId: null,
+  warningIntervalId: null,
+  isWarningActive: false,
   cameraStream: null,
   cameraError: null,
   uploadedImage: null,
@@ -66,10 +75,14 @@ const btnCameraRetry = document.getElementById('btn-camera-retry');
 const btnUploadFallback = document.getElementById('btn-upload-fallback');
 const cameraFileInput = document.getElementById('camera-file-input');
 
-// DOM Elements: Overlays (Countdown & Ripple)
+// DOM Elements: Overlays (Countdown, Ripple, & Idle Warning)
 const countdownOverlay = document.getElementById('countdown-overlay');
 const countdownNumber = document.getElementById('countdown-number');
 const rippleOverlay = document.getElementById('ripple-overlay');
+const idleWarningOverlay = document.getElementById('idle-warning-overlay');
+const idleCounter = document.getElementById('idle-counter');
+const idleCountdownText = document.getElementById('idle-countdown-text');
+const btnIdleStay = document.getElementById('btn-idle-stay');
 
 // DOM Elements: Tombol-tombol Aksi
 const btnStart = document.getElementById('btn-start');
@@ -84,7 +97,7 @@ const btnRetake = document.getElementById('btn-retake');
 const btnChangeTheme = document.getElementById('btn-change-theme');
 
 /**
- * Menghentikan semua timer aktif (countdown dan proses generate)
+ * Menghentikan semua timer alur aktif (countdown dan proses generate)
  */
 function clearActiveTimers() {
   if (state.countdownIntervalId) {
@@ -97,6 +110,98 @@ function clearActiveTimers() {
   }
   if (countdownOverlay) countdownOverlay.classList.remove('active');
   if (rippleOverlay) rippleOverlay.classList.remove('active');
+}
+
+/**
+ * Menghentikan timer idle dan menyembunyikan modal peringatan
+ */
+export function clearIdleTimers() {
+  if (state.idleTimerId) {
+    clearTimeout(state.idleTimerId);
+    state.idleTimerId = null;
+  }
+  if (state.warningIntervalId) {
+    clearInterval(state.warningIntervalId);
+    state.warningIntervalId = null;
+  }
+  if (idleWarningOverlay) {
+    idleWarningOverlay.classList.remove('active');
+  }
+  state.isWarningActive = false;
+}
+
+/**
+ * Memulai timer deteksi ketidakaktifan (idle) 60 detik (TASKS.md T7)
+ */
+export function startIdleTimer() {
+  clearIdleTimers();
+
+  // Layar intro tidak membutuhkan auto-reset. Saat hitung mundur atau proses generate, sistem sedang aktif
+  if ([STATES.INTRO, STATES.HITUNG_MUNDUR, STATES.MEMPROSES].includes(state.status)) return;
+
+  state.idleTimerId = setTimeout(() => {
+    showIdleWarning();
+  }, IDLE_CONFIG.idleTimeoutMs);
+}
+
+/**
+ * Menampilkan dialog hitung mundur peringatan idle 10 detik (PRD F7)
+ */
+export function showIdleWarning() {
+  state.isWarningActive = true;
+  let count = IDLE_CONFIG.warningDurationSec;
+
+  if (idleCounter) idleCounter.textContent = count;
+  if (idleCountdownText) idleCountdownText.textContent = count;
+  if (idleWarningOverlay) idleWarningOverlay.classList.add('active');
+
+  state.warningIntervalId = setInterval(() => {
+    count -= 1;
+    if (count > 0) {
+      if (idleCounter) idleCounter.textContent = count;
+      if (idleCountdownText) idleCountdownText.textContent = count;
+    } else {
+      clearIdleTimers();
+      resetTotal();
+    }
+  }, 1000);
+}
+
+/**
+ * Membatalkan peringatan idle jika ada interaksi pengunjung
+ */
+export function dismissIdleWarning() {
+  clearIdleTimers();
+  if (state.status !== STATES.INTRO) {
+    startIdleTimer();
+  }
+}
+
+/**
+ * Reset total sesi (TASKS.md T7 & AGENTS.md Aturan 2):
+ * - Hentikan kamera dan matikan lampu indikator
+ * - Kosongkan semua memori canvas (width = 0, height = 0)
+ * - Bersihkan data foto pengunjung
+ * - Kembalikan status ke Intro
+ */
+export function resetTotal() {
+  clearActiveTimers();
+  clearIdleTimers();
+  stopCamera();
+  unfreezeCamera();
+
+  // Kosongkan semua canvas di memori agar tidak ada sisa data wajah (AGENTS.md Aturan 2)
+  clearCanvas(state.faceCanvas);
+  clearCanvas(state.bufferCanvas);
+  clearCanvas(cameraFreezeCanvas);
+  if (resultCanvas) clearCanvas(resultCanvas);
+
+  state.uploadedImage = null;
+  state.posterSeed = null;
+  state.isGenerating = false;
+
+  selectTheme('imajinasi');
+  transitionTo(STATES.INTRO);
 }
 
 /**
@@ -287,16 +392,14 @@ export function transitionTo(nextState) {
     hideCameraError();
   }
 
-  // Jika kembali ke intro (reset), bersihkan memori canvas secara total (AGENTS.md Aturan 2)
-  if (nextState === STATES.INTRO) {
-    unfreezeCamera();
-    clearCanvas(state.faceCanvas);
-    clearCanvas(state.bufferCanvas);
-    clearCanvas(cameraFreezeCanvas);
-    if (resultCanvas) clearCanvas(resultCanvas);
-  }
-
   state.status = nextState;
+
+  // Atur lifecycle timer idle (jangan aktif saat intro, hitung mundur, atau render)
+  if ([STATES.INTRO, STATES.HITUNG_MUNDUR, STATES.MEMPROSES].includes(nextState)) {
+    clearIdleTimers();
+  } else {
+    startIdleTimer();
+  }
 
   const viewConfig = STATE_VIEW_MAP[nextState];
   if (!viewConfig) return;
@@ -400,7 +503,6 @@ async function startProcessing() {
   if (rippleOverlay) rippleOverlay.classList.add('active');
   state.isGenerating = true;
 
-  // Jalur timer minimal 1.5 detik untuk kepuasan animasi riak (DESIGN.md Sec. 5)
   const minDelayPromise = new Promise((resolve) => {
     state.processingTimeoutId = setTimeout(resolve, 1500);
   });
@@ -409,17 +511,13 @@ async function startProcessing() {
     const seed = Date.now();
     state.posterSeed = seed;
 
-    // Buffer offscreen canvas (DESIGN.md Bab 6)
     state.bufferCanvas.width = 1080;
     state.bufferCanvas.height = 1350;
 
-    // Render tema Imajinasi (atau fallback untuk tema lainnya sebelum T8 & T9)
     await renderImajinasi(state.bufferCanvas, state.faceCanvas, { seed });
 
-    // Tunggu animasi riak selesai
     await minDelayPromise;
 
-    // Salin hasil render ke canvas yang tampil di layar
     if (resultCanvas) {
       resultCanvas.width = 1080;
       resultCanvas.height = 1350;
@@ -436,6 +534,32 @@ async function startProcessing() {
     state.isGenerating = false;
     transitionTo(STATES.HASIL);
   }
+}
+
+/**
+ * Mengunduh poster hasil dalam format PNG resolusi 1080x1350
+ * dengan nama file: tiga-dunia-wajahmu-<tema>.png (TASKS.md T6 & PRD F5)
+ */
+export function downloadPoster() {
+  const canvas = resultCanvas || state.bufferCanvas;
+  if (!canvas || canvas.width === 0) return;
+
+  const filename = `tiga-dunia-wajahmu-${state.selectedTheme}.png`;
+
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 1000);
+  }, 'image/png');
 }
 
 /**
@@ -479,7 +603,7 @@ function capitalizeFirstLetter(string) {
 }
 
 // ==========================================================================
-// Event Listeners: Mouse / Touch
+// Event Listeners: Mouse / Touch / User Activity
 // ==========================================================================
 
 // Layar 1: Intro
@@ -550,33 +674,6 @@ if (btnConfirmRetake) {
   btnConfirmRetake.addEventListener('click', () => transitionTo(STATES.KAMERA));
 }
 
-/**
- * Mengunduh poster hasil dalam format PNG resolusi 1080x1350
- * dengan nama file: tiga-dunia-wajahmu-<tema>.png (TASKS.md T6 & PRD F5)
- */
-export function downloadPoster() {
-  const canvas = resultCanvas || state.bufferCanvas;
-  if (!canvas || canvas.width === 0) return;
-
-  const filename = `tiga-dunia-wajahmu-${state.selectedTheme}.png`;
-
-  canvas.toBlob((blob) => {
-    if (!blob) return;
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // Bebaskan object URL dari memori setelah unduhan dimulai
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-    }, 1000);
-  }, 'image/png');
-}
-
 // Layar 4: Hasil (T6)
 if (btnDownload) {
   btnDownload.addEventListener('click', downloadPoster);
@@ -587,6 +684,26 @@ if (btnRetake) {
 if (btnChangeTheme) {
   btnChangeTheme.addEventListener('click', () => transitionTo(STATES.TEMA));
 }
+
+// Dialog Idle Warning: Tombol "Saya Masih di Sini"
+if (btnIdleStay) {
+  btnIdleStay.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dismissIdleWarning();
+  });
+}
+
+// Deteksi Aktivitas Pengguna untuk Mengatur Ulang Timer Idle (TASKS.md T7)
+// Sesuai DESIGN.md: "Sentuh layar atau tekan tombol apa pun untuk melanjutkan"
+['pointerdown', 'keydown', 'touchstart', 'click'].forEach((evt) => {
+  window.addEventListener(evt, () => {
+    if (state.isWarningActive) {
+      dismissIdleWarning();
+    } else if (state.status !== STATES.INTRO) {
+      startIdleTimer();
+    }
+  }, { passive: true });
+});
 
 // Klik pada Step Dots
 stepDots.forEach((dot) => {
@@ -606,12 +723,10 @@ stepDots.forEach((dot) => {
 // Kontrol Keyboard (PRD F6 & AGENTS.md Aturan 7)
 // ==========================================================================
 window.addEventListener('keydown', (e) => {
-  // 1. Tombol ESC: Selalu reset ke Intro dari mana saja
+  // 1. Tombol ESC: Selalu reset total ke Intro dari mana saja
   if (e.key === 'Escape') {
     e.preventDefault();
-    clearActiveTimers();
-    stopCamera();
-    transitionTo(STATES.INTRO);
+    resetTotal();
     return;
   }
 
