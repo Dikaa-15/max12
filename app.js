@@ -5,6 +5,7 @@
 
 import { cropAndMirrorTo4x5, clearCanvas } from './utils.js?v=2';
 import { renderImajinasi, renderRealitas, renderSurealis } from './themes.js?v=3';
+import { initSegmenter, isolateSubject } from './segmentation.js?v=1';
 
 // 1. Definisi 7 State Resmi (TASKS.md T2, T3, T4, T5, T7)
 export const STATES = {
@@ -53,6 +54,8 @@ export const state = {
   isGenerating: false,
   // Canvas offscreen "face" untuk menyimpan data wajah 4:5 tanpa distorsi
   faceCanvas: document.createElement('canvas'),
+  // Canvas offscreen wajah terisolasi (T10A: background kamar dihapus)
+  segmentedFaceCanvas: document.createElement('canvas'),
   // Buffer offscreen untuk render 1080x1350 sebelum disalin ke layar (DESIGN.md Bab 6)
   bufferCanvas: document.createElement('canvas')
 };
@@ -195,6 +198,7 @@ export function resetTotal() {
 
   // Kosongkan semua canvas di memori agar tidak ada sisa data wajah (AGENTS.md Aturan 2)
   clearCanvas(state.faceCanvas);
+  clearCanvas(state.segmentedFaceCanvas);
   clearCanvas(state.bufferCanvas);
   clearCanvas(cameraFreezeCanvas);
   if (resultCanvas) clearCanvas(resultCanvas);
@@ -213,6 +217,9 @@ export function resetTotal() {
 export async function startCamera() {
   hideCameraError();
   unfreezeCamera();
+
+  // Pre-warm model segmentasi di background saat kamera mulai aktif (T10A)
+  initSegmenter().catch(() => {});
 
   stopCamera();
 
@@ -517,12 +524,28 @@ async function startProcessing() {
     state.bufferCanvas.width = 1080;
     state.bufferCanvas.height = 1350;
 
+    // T10A: Isolasi subjek (hapus latar belakang kamar/kasur/dinding secara lokal)
+    let processedFace = state.faceCanvas;
+    try {
+      const isolated = await isolateSubject(state.faceCanvas);
+      if (isolated && isolated.width > 0) {
+        state.segmentedFaceCanvas.width = isolated.width;
+        state.segmentedFaceCanvas.height = isolated.height;
+        const sctx = state.segmentedFaceCanvas.getContext('2d');
+        sctx.clearRect(0, 0, isolated.width, isolated.height);
+        sctx.drawImage(isolated, 0, 0);
+        processedFace = state.segmentedFaceCanvas;
+      }
+    } catch (segErr) {
+      console.warn('Isolasi subjek gagal, menggunakan frame asli:', segErr);
+    }
+
     if (state.selectedTheme === 'realitas') {
-      await renderRealitas(state.bufferCanvas, state.faceCanvas, { seed });
+      await renderRealitas(state.bufferCanvas, processedFace, { seed });
     } else if (state.selectedTheme === 'surealis') {
-      await renderSurealis(state.bufferCanvas, state.faceCanvas, { seed });
+      await renderSurealis(state.bufferCanvas, processedFace, { seed });
     } else {
-      await renderImajinasi(state.bufferCanvas, state.faceCanvas, { seed });
+      await renderImajinasi(state.bufferCanvas, processedFace, { seed });
     }
 
     await minDelayPromise;

@@ -74,11 +74,11 @@ Penerimaan: tampilan konsisten dan rapi di 1366x768, 1920x1080, dan portrait.
 
 ## Fase C2: Transformasi Karakter Hibrida (Opsi 3) — Wajah Menjadi Karakter MAX 12
 
-### T10A. Segmentasi Wajah & Isolasi Subjek (Hapus Latar Kamar)
+### T10A. Segmentasi Wajah & Isolasi Subjek (Hapus Latar Kamar) — [SELESAI]
 - Memisahkan wajah, rambut, dan siluet kepala pengunjung secara bersih dari latar belakang ruangan (kasur/dinding/bantal).
-- Pipeline segmentasi lokal berbasis browser (MediaPipe / contour segmentation dengan alpha feathering halus).
-- Fallback adaptif: bila perangkat lambat/membatasi wasm, gunakan radial-adaptive skin/luminance isolation yang rapi.
-Penerimaan: wajah dan rambut terisolasi tanpa latar kamar/bantal yang mengganggu.
+- Pipeline segmentasi lokal berbasis browser (MediaPipe Selfie Segmentation lokal via WebAssembly dengan alpha feathering 2px).
+- Fallback adaptif: radial-adaptive soft feathering jika wasm tidak didukung.
+Penerimaan: latar belakang kamar terhapus bersih dan terisolasi dengan transparansi penuh (<400ms di browser).
 
 ### T10B. Stylization Wajah Artistik (Filter Cel-Shading & Ilustrasi Karakter)
 - Mengubah foto kamera mentah menjadi bertekstur seni ilustrasi/kartun 3D:
