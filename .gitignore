@@ -3,5 +3,5 @@ Thumbs.db
 node_modules/
 .vercel
 .playwright-mcp/
-*.png
+/*.png
 

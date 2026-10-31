@@ -10,7 +10,7 @@
   <link rel="preload" href="assets/fonts/cormorant-garamond-italic-600.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/plus-jakarta-sans.woff2" as="font" type="font/woff2" crossorigin>
   
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <!-- Ambient Animated Background (DESIGN.md Sec. 5) -->
@@ -18,6 +18,13 @@
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
     <div class="blob blob-3"></div>
+    <!-- Ambient Exhibition Elements (assets/images) -->
+    <img src="assets/images/optimized/36.webp" class="ambient-asset ambient-island" alt="" aria-hidden="true">
+    <img src="assets/images/optimized/3.webp" class="ambient-asset ambient-rock-left" alt="" aria-hidden="true">
+    <img src="assets/images/optimized/40.webp" class="ambient-asset ambient-rock-right" alt="" aria-hidden="true">
+    <img src="assets/images/optimized/12.webp" class="ambient-asset ambient-bough" alt="" aria-hidden="true">
+    <img src="assets/images/optimized/11.webp" class="ambient-asset ambient-crescent" alt="" aria-hidden="true">
+    <img src="assets/images/optimized/7.webp" class="ambient-asset ambient-tendril" alt="" aria-hidden="true">
   </div>
 
   <div class="app-container">
@@ -40,11 +47,17 @@
         <div class="visual-pane">
           <div class="intro-artwork">
             <div class="intro-portal">
+              <img src="assets/images/optimized/36.webp" class="intro-bg-island" alt="" aria-hidden="true">
               <span class="portal-sparkle sparkle-1"></span>
               <span class="portal-sparkle sparkle-2"></span>
               <span class="portal-sparkle sparkle-3"></span>
               <div class="intro-portal-text">Ruang Liminal<br>Tiga Dunia</div>
+              <img src="assets/images/optimized/12.webp" class="intro-bubble-bough" alt="" aria-hidden="true">
             </div>
+            <!-- Welcoming Mascot (Pose 4) & Signature Glass Flowers -->
+            <img src="assets/images/optimized/pose_4.webp" class="intro-mascot" alt="Karakter MAX 12 menyapa pengunjung">
+            <img src="assets/images/optimized/37.webp" class="intro-flower-accent" alt="" aria-hidden="true">
+            <img src="assets/images/optimized/35.webp" class="intro-lotus-accent" alt="" aria-hidden="true">
           </div>
         </div>
         <div class="control-panel">
@@ -62,12 +75,16 @@
         <div class="visual-pane">
           <div class="intro-artwork" id="theme-visual-preview">
             <div class="intro-portal">
+              <img id="theme-preview-img" src="assets/images/optimized/37.webp" class="theme-preview-art" alt="Visual tema Imajinasi">
               <div class="intro-portal-text" id="theme-preview-title">Imajinasi</div>
             </div>
           </div>
         </div>
         <div class="control-panel">
-          <h2 id="theme-title" class="screen-title">Pilih duniamu.</h2>
+          <div class="theme-header-row">
+            <h2 id="theme-title" class="screen-title">Pilih duniamu.</h2>
+            <img src="assets/images/optimized/pose_2.webp" class="theme-mascot" alt="Karakter mengamati pilihan tema" aria-hidden="true">
+          </div>
           <div class="theme-selector-list" role="radiogroup" aria-label="Pilihan Tema">
             <div class="theme-card theme-card-imajinasi selected" data-theme="imajinasi" tabindex="0" role="radio" aria-checked="true">
               <div class="theme-card-preview preview-imajinasi"></div>
@@ -102,6 +119,10 @@
       <section id="screen-camera" class="screen" aria-labelledby="camera-title">
         <div class="visual-pane">
           <div class="camera-container">
+            <!-- Framing Glass Vines -->
+            <img src="assets/images/optimized/4.webp" class="camera-vine camera-vine-left" alt="" aria-hidden="true">
+            <img src="assets/images/optimized/5.webp" class="camera-vine camera-vine-right" alt="" aria-hidden="true">
+
             <video id="camera-video" playsinline autoplay muted class="camera-video"></video>
             <canvas id="camera-freeze-canvas" class="camera-freeze-canvas" aria-label="Hasil Foto Wajah"></canvas>
             
@@ -147,7 +168,39 @@
           <div id="subpanel-camera" class="camera-subpanel active">
             <h2 id="camera-title" class="screen-title">Kamera</h2>
             <p class="screen-desc">Pas-kan wajahmu di dalam oval.</p>
-            <div class="btn-group">
+
+            <!-- Inspirasi Pose Interaktif (5 Pose Mascot) -->
+            <div class="pose-guide-bar" aria-label="Inspirasi Pose">
+              <div class="pose-guide-header">
+                <span>Inspirasi Pose ✨</span>
+                <span style="font-size: 11px; opacity: 0.8; font-weight: 500;">Pilih gaya favoritmu</span>
+              </div>
+              <div class="pose-guide-list" role="tablist">
+                <button class="pose-guide-item active" data-pose="1" type="button" role="tab" aria-selected="true" title="Pose 1: Tenang">
+                  <img src="assets/images/optimized/pose_1.webp" alt="Pose 1">
+                  <span class="pose-guide-item-label">Tenang</span>
+                </button>
+                <button class="pose-guide-item" data-pose="2" type="button" role="tab" aria-selected="false" title="Pose 2: Kagum">
+                  <img src="assets/images/optimized/pose_2.webp" alt="Pose 2">
+                  <span class="pose-guide-item-label">Kagum</span>
+                </button>
+                <button class="pose-guide-item" data-pose="3" type="button" role="tab" aria-selected="false" title="Pose 3: Merenung">
+                  <img src="assets/images/optimized/pose_3.webp" alt="Pose 3">
+                  <span class="pose-guide-item-label">Merenung</span>
+                </button>
+                <button class="pose-guide-item" data-pose="4" type="button" role="tab" aria-selected="false" title="Pose 4: Ceria">
+                  <img src="assets/images/optimized/pose_4.webp" alt="Pose 4">
+                  <span class="pose-guide-item-label">Ceria</span>
+                </button>
+                <button class="pose-guide-item" data-pose="5" type="button" role="tab" aria-selected="false" title="Pose 5: Bebas">
+                  <img src="assets/images/optimized/pose_5.webp" alt="Pose 5">
+                  <span class="pose-guide-item-label">Bebas</span>
+                </button>
+              </div>
+              <div id="pose-tip-text" class="pose-tip-text">Pose 1: Tenang — Tatap kamera dengan senyum hangat</div>
+            </div>
+
+            <div class="btn-group" style="margin-top: 14px;">
               <button id="btn-camera-capture" class="btn btn-primary" type="button">Ambil Foto</button>
               <button id="btn-camera-back" class="btn btn-secondary" type="button">Kembali</button>
             </div>
@@ -179,10 +232,14 @@
         <div class="visual-pane">
           <div class="result-poster-frame">
             <canvas id="result-canvas" class="result-canvas" width="1080" height="1350" aria-label="Poster Hasil"></canvas>
+            <img src="assets/images/optimized/12.webp" class="result-bubble-accent" alt="" aria-hidden="true">
           </div>
         </div>
         <div class="control-panel">
-          <h2 id="result-title" class="screen-title">Ini duniamu.</h2>
+          <div class="result-header-row">
+            <h2 id="result-title" class="screen-title">Ini duniamu.</h2>
+            <img src="assets/images/optimized/pose_5.webp" class="result-mascot" alt="Karakter merayakan hasil karya" aria-hidden="true">
+          </div>
           <div class="btn-group">
             <button id="btn-download" class="btn btn-primary" type="button">Unduh</button>
             <button id="btn-retake" class="btn btn-secondary" type="button">Ulangi</button>
@@ -202,6 +259,7 @@
   <!-- Modal Peringatan Idle (PRD F7 & DESIGN.md Sec. 5) -->
   <div id="idle-warning-overlay" class="idle-warning-overlay" role="alertdialog" aria-modal="true" aria-labelledby="idle-title" aria-describedby="idle-desc">
     <div class="idle-card">
+      <img src="assets/images/optimized/pose_3.webp" class="idle-mascot" alt="Karakter sedang merenung" aria-hidden="true">
       <div id="idle-counter" class="idle-counter" aria-live="assertive">10</div>
       <h3 id="idle-title" class="idle-title">Masih di sini?</h3>
       <p id="idle-desc" class="idle-desc">
@@ -211,6 +269,6 @@
     </div>
   </div>
 
-  <script type="module" src="app.js?v=3"></script>
+  <script type="module" src="app.js?v=5"></script>
 </body>
 </html>

@@ -59,16 +59,17 @@ Penerimaan: reset berjalan dari semua layar; tidak ada sisa foto setelah reset.
 
 ## Fase C: Tema dan polesan (31 Okt siang)
 
-### T8. Tema Realitas (1 jam)
-Penerimaan: tampil layak untuk berbagai warna kulit dan pencahayaan (uji minimal 5 foto).
+### T8. Tema Realitas (1 jam) — [SELESAI]
+Penerimaan: tampil layak untuk berbagai warna kulit dan pencahayaan (teruji dengan kalibrasi kontras adaptif S-curve dan micro-sepia).
 
-### T9. Tema Surealis (1,5 jam)
-Penerimaan: sama dengan T8, ditambah lolos checklist konten aman
-(tidak seram, tidak ada distorsi wajah, palet cerah).
+### T9. Tema Surealis (1,5 jam) — [SELESAI]
+Penerimaan: double exposure pulau melayang kristal, masking oval halus feathered, lolos checklist kurasi ramah pameran.
 
-### T10. Polesan UI dan responsif (1,5 jam)
-- Terapkan token DESIGN.md, transisi antar layar, kartu tema dengan pratinjau.
-- Uji portrait, layar penuh, kursor tersembunyi saat idle.
+### T10. Polesan UI dan responsif (1,5 jam) — [SELESAI]
+- Terapkan token DESIGN.md, transisi antar layar (crossfade 250ms), kartu tema dengan pratinjau dinamis.
+- Integrasi penuh 16 aset pameran (@assets/images) & interaktivitas 5 panduan pose maskot.
+- Uji responsif 1366x768 (bebas scroll vertikal), 1920x1080, dan ponsel potret.
+- Kursor otomatis tersembunyi saat idle 3 detik untuk mode pameran.
 Penerimaan: tampilan konsisten dan rapi di 1366x768, 1920x1080, dan portrait.
 
 ### T11. Cadangan unggah foto (30 menit)

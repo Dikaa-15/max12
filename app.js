@@ -62,8 +62,11 @@ const screens = document.querySelectorAll('.screen');
 const stepDots = document.querySelectorAll('.step-dot');
 const themeCards = document.querySelectorAll('.theme-card');
 const themePreviewTitle = document.getElementById('theme-preview-title');
+const themePreviewImg = document.getElementById('theme-preview-img');
 const resultThemeLabel = document.getElementById('result-theme-label');
 const cameraSubpanels = document.querySelectorAll('.camera-subpanel');
+const poseGuideItems = document.querySelectorAll('.pose-guide-item');
+const poseTipText = document.getElementById('pose-tip-text');
 
 // DOM Elements: Kamera, Canvas Freeze, dan Canvas Hasil (T3, T4, T5)
 const cameraVideo = document.getElementById('camera-video');
@@ -590,6 +593,18 @@ export function selectTheme(themeName) {
   if (themePreviewTitle) {
     themePreviewTitle.textContent = capitalizeFirstLetter(themeName);
   }
+  if (themePreviewImg) {
+    if (themeName === 'surealis') {
+      themePreviewImg.src = 'assets/images/optimized/36.webp';
+      themePreviewImg.alt = 'Visual tema Surealis: Pulau Melayang Dua Alam';
+    } else if (themeName === 'realitas') {
+      themePreviewImg.src = 'assets/images/optimized/35.webp';
+      themePreviewImg.alt = 'Visual tema Realitas: Bunga Alami Nyata';
+    } else {
+      themePreviewImg.src = 'assets/images/optimized/37.webp';
+      themePreviewImg.alt = 'Visual tema Imajinasi: Kelopak Kaca Bercahaya';
+    }
+  }
   if (resultThemeLabel) {
     resultThemeLabel.textContent = capitalizeFirstLetter(themeName);
   }
@@ -646,6 +661,30 @@ if (btnCameraCapture) {
 if (btnCameraBack) {
   btnCameraBack.addEventListener('click', () => transitionTo(STATES.TEMA));
 }
+
+// Interaktivitas Inspirasi Pose (5 Gaya Pose Mascot)
+const POSE_TIPS = {
+  '1': 'Pose 1: Tenang — Tatap kamera dengan senyum hangat',
+  '2': 'Pose 2: Kagum — Tatap sedikit ke atas seolah menatap bintang',
+  '3': 'Pose 3: Merenung — Bertumpu tangan dengan tenang',
+  '4': 'Pose 4: Ceria — Beri kedipan mata atau lambaikan tangan',
+  '5': 'Pose 5: Bebas — Pose ekspresif dan penuh gaya sesukamu!'
+};
+
+poseGuideItems.forEach((item) => {
+  item.addEventListener('click', () => {
+    poseGuideItems.forEach((btn) => {
+      btn.classList.remove('active');
+      btn.setAttribute('aria-selected', 'false');
+    });
+    item.classList.add('active');
+    item.setAttribute('aria-selected', 'true');
+    const poseId = item.getAttribute('data-pose');
+    if (poseTipText && POSE_TIPS[poseId]) {
+      poseTipText.textContent = POSE_TIPS[poseId];
+    }
+  });
+});
 
 // Error & Fallback Tombol (T3 / F9)
 if (btnCameraRetry) {
@@ -785,3 +824,26 @@ window.addEventListener('keydown', (e) => {
     }
   }
 });
+
+// ==========================================================================
+// Kursor otomatis tersembunyi saat idle 3 detik (T10 / PRD F7 / Kiosk Mode)
+// ==========================================================================
+let cursorIdleTimeoutId = null;
+
+function handleUserActivityForCursor() {
+  document.body.classList.remove('idle-cursor');
+  if (cursorIdleTimeoutId) {
+    clearTimeout(cursorIdleTimeoutId);
+  }
+  cursorIdleTimeoutId = setTimeout(() => {
+    // Sembunyikan kursor jika modal idle tidak sedang aktif terbuka
+    if (!state.isWarningActive) {
+      document.body.classList.add('idle-cursor');
+    }
+  }, 3000);
+}
+
+['mousemove', 'mousedown', 'keydown', 'touchstart'].forEach((eventType) => {
+  window.addEventListener(eventType, handleUserActivityForCursor, { passive: true });
+});
+handleUserActivityForCursor();
