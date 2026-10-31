@@ -4,7 +4,7 @@
  */
 
 import { cropAndMirrorTo4x5, clearCanvas } from './utils.js?v=2';
-import { renderImajinasi, renderRealitas, renderSurealis } from './themes.js?v=3';
+import { renderImajinasi, renderRealitas, renderSurealis } from './themes.js?v=5';
 import { initSegmenter, isolateSubject } from './segmentation.js?v=1';
 import { stylizeCharacterFace } from './stylization.js?v=1';
 

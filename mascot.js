@@ -65,28 +65,52 @@ export async function createMascotCharacter(stylizedFaceCanvas, poseId = 1, them
 
   // Koordinat kepala & leher per pose
   let cx = 424;
-  let cy = 370;
-  let neckY = 500;
-  let faceScale = 0.94;
+  let cy = 385;
+  let neckY = 555;
+  let faceScale = 0.98;
 
   if (pId === 3) {
     // Pose 3: Merenung (Duduk bersila, tangan bertumpu di bawah dagu)
-    cy = 390;
-    neckY = 480;
-    faceScale = 0.90;
+    cy = 450;
+    neckY = 620;
+    faceScale = 0.94;
   } else if (pId === 2) {
     // Pose 2: Kagum (Tatap sedikit ke atas)
-    cy = 365;
-    neckY = 495;
+    cy = 370;
+    neckY = 555;
+    faceScale = 0.96;
+  } else if (pId === 4) {
+    // Pose 4: Ceria (Tangan terangkat menyapa)
+    cy = 380;
+    neckY = 555;
+    faceScale = 0.96;
   } else if (pId === 5) {
     // Pose 5: Bebas (Melompat ceria)
     cy = 370;
-    neckY = 500;
+    neckY = 550;
+    faceScale = 0.96;
   }
 
   // --------------------------------------------------------------------------
-  // LAPISAN 1: Mahkota Kelopak Bunga Matahari (Belakang Kepala)
-  // Menghapus wajah boneka & rambut perak agar kepala pengunjung bisa masuk
+  // LAPISAN 0: Lapisan Dasar Rambut Perak Maskot (Solid Silver Hair Backing)
+  // Memastikan area dalam mahkota 100% solid sehingga latar belakang langit /
+  // kosmik tidak akan bocor menembus kepala pengunjung
+  // --------------------------------------------------------------------------
+  ctx.save();
+  const bgHair = ctx.createRadialGradient(cx, cy, 60, cx, cy, 180);
+  bgHair.addColorStop(0, 'rgba(238, 234, 230, 1)');
+  bgHair.addColorStop(0.75, 'rgba(226, 222, 216, 1)');
+  bgHair.addColorStop(1, 'rgba(215, 210, 204, 0)');
+  ctx.fillStyle = bgHair;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 180, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 1: Mahkota Kelopak Bunga Matahari & Rambut Perak (Belakang Kepala)
+  // Menghapus hanya fitur wajah boneka (mata, hidung, bibir) agar kepala pengunjung masuk,
+  // sambil mempertahankan rambut perak mengembang dan mahkota bunga matahari utuh
   // --------------------------------------------------------------------------
   const crownCanvas = document.createElement('canvas');
   crownCanvas.width = bw;
@@ -94,58 +118,69 @@ export async function createMascotCharacter(stylizedFaceCanvas, poseId = 1, them
   const cctx = crownCanvas.getContext('2d');
   cctx.drawImage(poseImg, 0, 0, bw, bh);
 
-  // Masking elips untuk memotong bagian dalam mahkota bunga
+  // Masking elips lembut untuk menghapus hanya mata, hidung, dan bibir boneka
   cctx.save();
   cctx.globalCompositeOperation = 'destination-out';
-  const cgrad = cctx.createRadialGradient(cx, cy, 150, cx, cy, 215);
+  const cgrad = cctx.createRadialGradient(cx, cy, 90, cx, cy, 145);
   cgrad.addColorStop(0, 'rgba(0,0,0,1)');
   cgrad.addColorStop(0.85, 'rgba(0,0,0,1)');
   cgrad.addColorStop(1, 'rgba(0,0,0,0)');
   cctx.fillStyle = cgrad;
   cctx.beginPath();
-  cctx.arc(cx, cy, 215, 0, Math.PI * 2);
+  cctx.ellipse(cx, cy + 10, 140, 155, 0, 0, Math.PI * 2);
   cctx.fill();
   cctx.restore();
 
   ctx.drawImage(crownCanvas, 0, 0);
 
   // --------------------------------------------------------------------------
-  // LAPISAN 2: Binar Aura Bunga / Sunburst Halo di Belakang Kepala Pengunjung
+  // LAPISAN 2: Aura Cahaya Lembut Maskot (Subtle Warm Sunburst Glow)
+  // Lembut menyebar di belakang kelopak bunga matahari tanpa lingkaran pekat
   // --------------------------------------------------------------------------
   ctx.save();
-  let haloColor = 'rgba(255, 195, 45, 0.75)';
-  let haloOuter = 'rgba(255, 160, 30, 0)';
-  if (theme === 'realitas') {
-    haloColor = 'rgba(235, 230, 220, 0.65)';
-    haloOuter = 'rgba(200, 195, 185, 0)';
-  } else if (theme === 'surealis') {
-    haloColor = 'rgba(160, 205, 255, 0.70)';
-    haloOuter = 'rgba(47, 99, 214, 0)';
-  }
-
-  const hgrad = ctx.createRadialGradient(cx, cy, 40, cx, cy, 225);
-  hgrad.addColorStop(0, haloColor);
-  hgrad.addColorStop(0.7, haloColor.replace(/[\d\.]+\)$/, '0.35)'));
-  hgrad.addColorStop(1, haloOuter);
+  const hgrad = ctx.createRadialGradient(cx, cy, 180, cx, cy, 330);
+  hgrad.addColorStop(0, 'rgba(255, 220, 110, 0.18)');
+  hgrad.addColorStop(0.65, 'rgba(255, 195, 60, 0.06)');
+  hgrad.addColorStop(1, 'rgba(255, 180, 40, 0)');
   ctx.fillStyle = hgrad;
   ctx.beginPath();
-  ctx.arc(cx, cy, 225, 0, Math.PI * 2);
+  ctx.arc(cx, cy, 330, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
   // --------------------------------------------------------------------------
   // LAPISAN 3: Wajah Pengunjung yang Telah Ter-stylize (T10B)
-  // Diposisikan presisi di pusat mahkota dan di atas kerah jas
+  // Diposisikan presisi di pusat mahkota dengan soft feathering
   // --------------------------------------------------------------------------
   if (stylizedFaceCanvas && stylizedFaceCanvas.width > 0) {
-    const fw = Math.round(400 * faceScale);
+    const fw = Math.round(380 * faceScale);
     const fh = Math.round(fw * (stylizedFaceCanvas.height / stylizedFaceCanvas.width));
     const fx = Math.round(cx - fw / 2);
     const fy = Math.round(cy - fh * 0.44);
 
+    // Lembutkan batas wajah agar membaur alami ke rambut perak maskot
+    const faceMaskCanvas = document.createElement('canvas');
+    faceMaskCanvas.width = fw;
+    faceMaskCanvas.height = fh;
+    const fctx = faceMaskCanvas.getContext('2d');
+    fctx.drawImage(stylizedFaceCanvas, 0, 0, fw, fh);
+
+    fctx.save();
+    fctx.globalCompositeOperation = 'destination-in';
+    const fgrad = fctx.createRadialGradient(fw / 2, fh * 0.46, fw * 0.32, fw / 2, fh * 0.46, fw * 0.48);
+    fgrad.addColorStop(0, 'rgba(0,0,0,1)');
+    fgrad.addColorStop(0.85, 'rgba(0,0,0,1)');
+    fgrad.addColorStop(1, 'rgba(0,0,0,0)');
+    fctx.fillStyle = fgrad;
+    fctx.beginPath();
+    fctx.ellipse(fw / 2, fh * 0.46, fw * 0.48, fh * 0.48, 0, 0, Math.PI * 2);
+    fctx.fill();
+    fctx.restore();
+
     ctx.save();
-    ctx.drawImage(stylizedFaceCanvas, fx, fy, fw, fh);
+    ctx.drawImage(faceMaskCanvas, fx, fy);
     ctx.restore();
+    clearCanvas(faceMaskCanvas);
   }
 
   // --------------------------------------------------------------------------
@@ -163,15 +198,15 @@ export async function createMascotCharacter(stylizedFaceCanvas, poseId = 1, them
   fgctx.globalCompositeOperation = 'destination-in';
   
   // Gradien vertikal lembut pada batas dasi kupu-kupu / leher
-  const fgGrad = fgctx.createLinearGradient(0, neckY - 15, 0, neckY + 15);
+  const fgGrad = fgctx.createLinearGradient(0, neckY - 12, 0, neckY + 12);
   fgGrad.addColorStop(0, 'rgba(0,0,0,0)');
   fgGrad.addColorStop(1, 'rgba(0,0,0,1)');
   fgctx.fillStyle = fgGrad;
-  fgctx.fillRect(0, neckY - 15, bw, 30);
+  fgctx.fillRect(0, neckY - 12, bw, 24);
   
   // Isi penuh pakaian dari leher ke bawah
   fgctx.fillStyle = 'rgba(0,0,0,1)';
-  fgctx.fillRect(0, neckY + 15, bw, bh - (neckY + 15));
+  fgctx.fillRect(0, neckY + 12, bw, bh - (neckY + 12));
 
   // Pertahankan tangan yang terangkat untuk pose ekspresif
   if (pId === 2 || pId === 4 || pId === 5) {
@@ -179,43 +214,11 @@ export async function createMascotCharacter(stylizedFaceCanvas, poseId = 1, them
     fgctx.fillRect(600, 320, bw - 600, bh - 320);
   } else if (pId === 3) {
     // Pose 3: Tangan bertumpu tepat di bawah dagu
-    fgctx.fillRect(250, 480, 350, bh - 480);
+    fgctx.fillRect(230, 560, 390, bh - 560);
   }
   fgctx.restore();
 
   ctx.drawImage(fgCanvas, 0, 0);
-
-  // --------------------------------------------------------------------------
-  // LAPISAN 5: Adaptasi Karakter Sesuai Tema
-  // --------------------------------------------------------------------------
-  if (theme === 'realitas') {
-    // Tema Realitas: Karakter kurator galeri seni berwibawa
-    // Mengubah pakaian & karakter menjadi monokrom gelatin-silver terkalibrasi
-    // Simpan salinan alpha mask sebelum blending agar piksel transparan tidak terisi
-    const mask = document.createElement('canvas');
-    mask.width = bw;
-    mask.height = bh;
-    const mctx = mask.getContext('2d');
-    mctx.drawImage(mascotCanvas, 0, 0);
-
-    ctx.save();
-    // Efek monokrom kuratorial
-    ctx.globalCompositeOperation = 'color';
-    ctx.fillStyle = 'rgba(128, 128, 128, 0.75)';
-    ctx.fillRect(0, 0, bw, bh);
-
-    // Kehangatan sepia tipis cetakan seni
-    ctx.globalCompositeOperation = 'soft-light';
-    ctx.fillStyle = 'rgba(235, 220, 200, 0.25)';
-    ctx.fillRect(0, 0, bw, bh);
-
-    // Terapkan kembali alpha mask agar piksel luar tetap murni transparan (0 alpha)
-    ctx.globalCompositeOperation = 'destination-in';
-    ctx.drawImage(mask, 0, 0);
-    ctx.restore();
-
-    clearCanvas(mask);
-  }
 
   // Bersihkan kanvas sementara
   clearCanvas(crownCanvas);

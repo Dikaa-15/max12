@@ -12,7 +12,7 @@ import {
   applyGrain,
   clearCanvas
 } from './utils.js?v=2';
-import { createMascotCharacter, loadImage } from './mascot.js?v=1';
+import { createMascotCharacter, loadImage } from './mascot.js?v=3';
 
 // Token Warna Resmi (DESIGN.md Bab 3)
 const COLORS = {
@@ -268,6 +268,7 @@ export async function renderRealitas(canvas, faceCanvas, options = {}) {
   // - Asset 41: Komputer Vintage Macintosh "Fluid State of Mind" di kanan bawah
   // - Asset 42: Modern Pop-Art Traffic Cone di samping Macintosh
   // - Asset 26: Bunga Kristal Berlian dengan Permata Rubi di kiri bawah
+  // - Asset 35: Bunga Teratai Pink Alami (Galeri Flora) di samping kiri
   // - Asset 16: Garis Pembatas Botani Halus simetris di atas teks kuratorial
   try {
     const a41 = await loadImage('assets/images/optimized/41.webp');
@@ -277,7 +278,10 @@ export async function renderRealitas(canvas, faceCanvas, options = {}) {
     ctx.drawImage(a42, 645, 935, 125, 125);
 
     const a26 = await loadImage('assets/images/optimized/26.webp');
-    ctx.drawImage(a26, 100, 840, 240, 260);
+    ctx.drawImage(a26, 90, 830, 250, 270);
+
+    const a35 = await loadImage('assets/images/optimized/35.webp');
+    ctx.drawImage(a35, 250, 935, 160, 190);
 
     const a16 = await loadImage('assets/images/optimized/16.webp');
     ctx.drawImage(a16, 540 - 220, 1055, 440, 45);
@@ -432,11 +436,12 @@ export async function renderSurealis(canvas, faceCanvas, options = {}) {
     console.warn('Gagal memuat pulau Laputa Surealis:', err);
   }
 
-  // 4. Karakter Maskot MAX 12 Berdiri Tegak di Atas Pulau Laputa (T10C)
+  // 4. Karakter Maskot MAX 12 di Atas Pulau Laputa (T10C)
   const mascotW = 490;
   const mascotH = Math.round(mascotW * (1200 / 848)); // ~693px
   const mascotX = Math.round(540 - mascotW / 2);
-  const mascotY = 225; // Kaki karakter menyentuh rumput pulau Laputa di y=890..915
+  // Penyesuaian ketinggian: Pose 3 duduk bersila sedikit lebih rendah agar pas di rumput Laputa
+  const mascotY = (poseId === 3) ? 290 : 225;
 
   try {
     const mascotCanvas = await createMascotCharacter(faceCanvas, poseId, 'surealis');
@@ -455,28 +460,12 @@ export async function renderSurealis(canvas, faceCanvas, options = {}) {
     console.warn('Compositing maskot gagal, fallback ke wajah langsung:', mErr);
   }
 
-  // 5. Elemen Surealisme Magis di Angkasa:
-  // - Asset 31: Ikan Mas Bersayap Kupu-Kupu Ungu (Kanan Atas)
-  // - Asset 28: Burung Kolibri Meminum Kubus Teal Melayang (Kiri Atas)
-  // - Asset 24: Mawar Surealis Bermata Manusia (Kiri Tengah)
-  // - Asset 22: Sepasang Mata Kosmik Mistis (Kanan Langit)
-  // - Asset 30: Kucing Belang Melompat di Langit Awan (Tengah Atas)
-  // - Asset 25: Tetesan Air Kristal Jatuh ke Danau
+  // 5. Elemen Surealisme Magis Puitis (Kurasi Ketat & Harmonis):
+  // - Asset 31: Ikan Mas Bersayap Kupu-Kupu Ungu (Berenang Anggun di Awan Langit Kanan)
+  // - Asset 25: Tetesan Air Kristal Berkilau (Menetes dari Dasar Pulau Menuju Danau)
   try {
     const a31 = await loadImage('assets/images/optimized/31.webp');
-    ctx.drawImage(a31, 670, 220, 310, 310);
-
-    const a28 = await loadImage('assets/images/optimized/28.webp');
-    ctx.drawImage(a28, 60, 140, 220, 220);
-
-    const a24 = await loadImage('assets/images/optimized/24.webp');
-    ctx.drawImage(a24, 60, 420, 230, 230);
-
-    const a22 = await loadImage('assets/images/optimized/22.webp');
-    ctx.drawImage(a22, 790, 70, 200, 180);
-
-    const a30 = await loadImage('assets/images/optimized/30.webp');
-    ctx.drawImage(a30, 460, 50, 180, 180);
+    ctx.drawImage(a31, 650, 160, 350, 350);
 
     // Tetesan air kristal (Asset 25) jatuh ke danau dari dasar pulau
     const a25 = await loadImage('assets/images/optimized/25.webp');
