@@ -9,8 +9,9 @@ import {
   randomRange,
   createFeatheredFace,
   drawSparkle,
-  applyGrain
-} from './utils.js';
+  applyGrain,
+  applyCalibratedGrayscale
+} from './utils.js?v=2';
 
 // Token Warna (DESIGN.md Bab 3)
 const COLORS = {
@@ -177,18 +178,15 @@ export async function renderImajinasi(canvas, faceCanvas, options = {}) {
 
   petalAngles.forEach((angle, idx) => {
     ctx.save();
-    // Pangkal di tepi luar kanvas
     const baseDist = randomRange(rng, 620, 750);
     const startX = 540 + Math.cos(angle) * baseDist;
     const startY = 600 + Math.sin(angle) * baseDist;
 
-    // Ujung kelopak mendekati halo wajah
     const tipDist = randomRange(rng, 340, 420);
     const tipAngle = angle + randomRange(rng, -0.3, 0.3);
     const tipX = 540 + Math.cos(tipAngle) * tipDist;
     const tipY = 600 + Math.sin(tipAngle) * tipDist;
 
-    // Titik kontrol Bezier kurva melengkung organik
     const ctrlDist = (baseDist + tipDist) / 2;
     const curveSpread = randomRange(rng, 40, 80);
     const ctrl1X = 540 + Math.cos(angle + 0.25) * ctrlDist + curveSpread;
@@ -196,7 +194,6 @@ export async function renderImajinasi(canvas, faceCanvas, options = {}) {
     const ctrl2X = 540 + Math.cos(angle - 0.25) * ctrlDist - curveSpread;
     const ctrl2Y = 600 + Math.sin(angle - 0.25) * ctrlDist;
 
-    // Gradien kelopak kaca
     const petalGrad = ctx.createLinearGradient(startX, startY, tipX, tipY);
     petalGrad.addColorStop(0, 'rgba(141, 184, 242, 0.35)');
     petalGrad.addColorStop(0.6, 'rgba(247, 250, 255, 0.65)');
@@ -208,7 +205,6 @@ export async function renderImajinasi(canvas, faceCanvas, options = {}) {
     ctx.shadowColor = 'rgba(141, 184, 242, 0.4)';
     ctx.shadowBlur = 10;
 
-    // Gambar kelopak menggunakan dua kurva bezier
     ctx.beginPath();
     ctx.moveTo(startX, startY);
     ctx.bezierCurveTo(ctrl1X, ctrl1Y, tipX + curveSpread * 0.3, tipY, tipX, tipY);
@@ -217,7 +213,6 @@ export async function renderImajinasi(canvas, faceCanvas, options = {}) {
     ctx.fill();
     ctx.stroke();
 
-    // Aksen mawar di ujung beberapa kelopak (DESIGN.md Sec. 7.1)
     if (roseAccentIndexes.includes(idx)) {
       ctx.fillStyle = COLORS.rose;
       ctx.shadowColor = COLORS.rose;
@@ -232,8 +227,6 @@ export async function renderImajinasi(canvas, faceCanvas, options = {}) {
 
   // --------------------------------------------------------------------------
   // LAPISAN 7: Kilau & Manik Emas
-  // 20-30 manik emas bulat mengapung (radius 2-5 px) dengan glow
-  // 3-5 bintang 4 sudut di area gelap atas
   // --------------------------------------------------------------------------
   const beadCount = Math.round(randomRange(rng, 22, 30));
   for (let i = 0; i < beadCount; i++) {
@@ -253,7 +246,6 @@ export async function renderImajinasi(canvas, faceCanvas, options = {}) {
     ctx.restore();
   }
 
-  // 3-5 bintang 4 sudut di area gelap langit atas
   const starCount = Math.round(randomRange(rng, 3, 5));
   for (let i = 0; i < starCount; i++) {
     const sx = randomRange(rng, 140, 940);
@@ -263,24 +255,19 @@ export async function renderImajinasi(canvas, faceCanvas, options = {}) {
   }
 
   // --------------------------------------------------------------------------
-  // LAPISAN 8: Tipografi (DESIGN.md Bab 6 & 7.1)
-  // Aman potong 60px dari tepi
+  // LAPISAN 8: Tipografi
   // --------------------------------------------------------------------------
   ctx.save();
 
-  // "MAX 12" di kiri atas (80, 100)
   ctx.font = '600 18px "Plus Jakarta Sans", system-ui, sans-serif';
   ctx.fillStyle = 'rgba(247, 250, 255, 0.75)';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillText('MAX 12', 80, 100);
 
-  // Tanggal pameran di kanan atas (1000, 100) rata kanan
   ctx.textAlign = 'right';
   ctx.fillText('31 OKT 2026', 1000, 100);
 
-  // Judul Tema: "Imajinasi" di (540, 1150) rata tengah
-  // 56 px Cormorant Garamond 600 italic, emas dengan glow
   ctx.font = 'italic 600 56px "Cormorant Garamond", Georgia, serif';
   ctx.textAlign = 'center';
   ctx.fillStyle = COLORS.gold;
@@ -288,8 +275,6 @@ export async function renderImajinasi(canvas, faceCanvas, options = {}) {
   ctx.shadowBlur = 20;
   ctx.fillText('Imajinasi', 540, 1150);
 
-  // Subtitle / Tagline: "Fluid State of Mind" di (540, 1210) rata tengah
-  // 16 px Plus Jakarta Sans 600, renggang (letter-spacing)
   ctx.shadowBlur = 0;
   ctx.font = '600 16px "Plus Jakarta Sans", system-ui, sans-serif';
   ctx.fillStyle = 'rgba(230, 240, 255, 0.85)';
@@ -302,6 +287,158 @@ export async function renderImajinasi(canvas, faceCanvas, options = {}) {
   // LAPISAN 9: Finishing - Monochrome Grain (alpha 0.08)
   // --------------------------------------------------------------------------
   applyGrain(ctx, width, height, 0.08);
+
+  return canvas;
+}
+
+/**
+ * Merender Tema 2: Realitas ("Potret apa adanya")
+ * Ukuran kanvas: 1080 x 1350 px (DESIGN.md Bab 7.2 & TASKS.md T8)
+ * 
+ * @param {HTMLCanvasElement} canvas
+ * @param {HTMLCanvasElement} faceCanvas
+ * @param {Object} [options]
+ * @returns {Promise<HTMLCanvasElement>}
+ */
+export async function renderRealitas(canvas, faceCanvas, options = {}) {
+  const width = 1080;
+  const height = 1350;
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  if (document.fonts) {
+    await document.fonts.ready;
+  }
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 1 & 2: Dasar Kertas Hangat Katun & Variasi Pencahayaan Galeri
+  // --------------------------------------------------------------------------
+  const paperGrad = ctx.createRadialGradient(540, 600, 150, 540, 600, 950);
+  paperGrad.addColorStop(0, '#FAF8F3');
+  paperGrad.addColorStop(0.7, '#F6F4EE');
+  paperGrad.addColorStop(1, '#EDE8DD');
+  ctx.fillStyle = paperGrad;
+  ctx.fillRect(0, 0, width, height);
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 3: Bingkai Garis Tipis & Corner Tick Marks
+  // Kotak 940 x 1210 di margin 70 px, garis 1 px ultramarine alpha 0.4
+  // --------------------------------------------------------------------------
+  ctx.save();
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(21, 54, 168, 0.4)';
+
+  const bx = 70;
+  const by = 70;
+  const bw = 940;
+  const bh = 1210;
+  const br = bx + bw; // 1010
+  const bb = by + bh; // 1280
+
+  ctx.strokeRect(bx, by, bw, bh);
+
+  // Corner Tick Marks (12 px di 4 sudut)
+  const tick = 12;
+  ctx.beginPath();
+  // Sudut Kiri Atas (70, 70)
+  ctx.moveTo(bx - tick, by); ctx.lineTo(bx + tick, by);
+  ctx.moveTo(bx, by - tick); ctx.lineTo(bx, by + tick);
+  // Sudut Kanan Atas (1010, 70)
+  ctx.moveTo(br - tick, by); ctx.lineTo(br + tick, by);
+  ctx.moveTo(br, by - tick); ctx.lineTo(br, by + tick);
+  // Sudut Kiri Bawah (70, 1280)
+  ctx.moveTo(bx - tick, bb); ctx.lineTo(bx + tick, bb);
+  ctx.moveTo(bx, bb - tick); ctx.lineTo(bx, bb + tick);
+  // Sudut Kanan Bawah (1010, 1280)
+  ctx.moveTo(br - tick, bb); ctx.lineTo(br + tick, bb);
+  ctx.moveTo(br, bb - tick); ctx.lineTo(br, bb + tick);
+  ctx.stroke();
+  ctx.restore();
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 4: Wajah Pengunjung (Grayscale Berkarakter Terkalibrasi)
+  // Ukuran 600 x 750 di (540, 580), mask elips rx 280, ry 360, feather 30 px
+  // --------------------------------------------------------------------------
+  const faceW = 600;
+  const faceH = 750;
+  const faceX = 540 - faceW / 2; // 240
+  const faceY = 580 - faceH / 2; // 205
+
+  const feathered = createFeatheredFace(faceCanvas, faceW, faceH, 280, 360, 30);
+  applyCalibratedGrayscale(feathered);
+  ctx.drawImage(feathered, faceX, faceY);
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 5: Titik Aksen Rubi Tunggal
+  // (540, 190), radius 6 px, tanpa glow, tajam dan presisi
+  // --------------------------------------------------------------------------
+  ctx.save();
+  ctx.fillStyle = COLORS.ruby;
+  ctx.beginPath();
+  ctx.arc(540, 190, 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 6: Tipografi Galeri Seni Kontemporer
+  // --------------------------------------------------------------------------
+  ctx.save();
+
+  // "MAX 12" di kiri atas (80, 110)
+  ctx.font = '600 16px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = COLORS.ink;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('MAX 12', 80, 110);
+
+  // "CATALOGUE NO. 02" di kanan atas (1000, 110)
+  ctx.font = '500 14px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(21, 54, 168, 0.7)';
+  ctx.textAlign = 'right';
+  ctx.fillText('CATALOGUE NO. 02', 1000, 110);
+
+  // Garis horizontal tipis 1 px
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(21, 54, 168, 0.2)';
+  ctx.beginPath();
+  ctx.moveTo(80, 130);
+  ctx.lineTo(1000, 130);
+  ctx.stroke();
+
+  // Judul: "Realitas" di (540, 1080)
+  ctx.font = 'italic 600 48px "Cormorant Garamond", Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = COLORS.ink;
+  ctx.fillText('Realitas', 540, 1080);
+
+  // Teks kuratorial pendek di (540, 1130)
+  ctx.font = 'italic 400 14px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(7, 18, 74, 0.75)';
+  ctx.fillText('Apa adanya. Dalam setiap garis dan diam.', 540, 1130);
+
+  // Garis aksen rubi tipis 1 px panjang 80 px di (540, 1160)
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = COLORS.ruby;
+  ctx.beginPath();
+  ctx.moveTo(540 - 40, 1160);
+  ctx.lineTo(540 + 40, 1160);
+  ctx.stroke();
+
+  // Tanggal dan koordinat fiktif pameran di (540, 1200)
+  ctx.font = '500 12px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(7, 18, 74, 0.6)';
+  ctx.letterSpacing = '2px';
+  ctx.fillText('31.10.2026 — RUANG LIMINAL', 540, 1200);
+
+  ctx.restore();
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 7: Finishing - Grain Kertas Halus (alpha 0.04)
+  // --------------------------------------------------------------------------
+  applyGrain(ctx, width, height, 0.04);
 
   return canvas;
 }

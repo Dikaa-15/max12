@@ -201,6 +201,75 @@ export function applyGrain(ctx, width = 1080, height = 1350, alpha = 0.08) {
 }
 
 /**
+ * Mengubah kanvas foto ke grayscale berkarakter dengan kurva kontras terkalibrasi
+ * (DESIGN.md Bab 7.2 Tema 2: Realitas)
+ * - Luminance weighted BT.601
+ * - S-curve terkalibrasi: shadow lembut terangkat, highlight terlindungi dari clipping
+ * - Micro-sepia warmth (cetakan gelatin silver)
+ * 
+ * @param {HTMLCanvasElement} canvas
+ * @returns {HTMLCanvasElement}
+ */
+export function applyCalibratedGrayscale(canvas) {
+  if (!canvas || canvas.width === 0 || canvas.height === 0) return canvas;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = imgData.data;
+  const len = data.length;
+
+  // Pass 1: Analisis distribusi luminance pada area wajah (alpha > 128)
+  let minLum = 255;
+  let maxLum = 0;
+  let validCount = 0;
+
+  for (let i = 0; i < len; i += 4) {
+    if (data[i + 3] < 128) continue;
+    const lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    if (lum < minLum) minLum = lum;
+    if (lum > maxLum) maxLum = lum;
+    validCount++;
+  }
+
+  if (validCount === 0) return canvas;
+
+  const range = Math.max(35, maxLum - minLum);
+
+  // Pass 2: Kalibrasi kontras adaptif (S-curve + shadow lift + highlight protection)
+  for (let i = 0; i < len; i += 4) {
+    if (data[i + 3] === 0) continue;
+
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+
+    // Normalisasi adaptif berbasis dynamic range potret
+    let norm = (lum - minLum) / range;
+    norm = Math.max(0, Math.min(1, norm));
+
+    // Shadow lift halus (gamma 0.85 untuk mengangkat detail gelap secara natural)
+    norm = Math.pow(norm, 0.85);
+
+    // Kurva kontras S-curve (smoothstep) untuk kedalaman tonal khas cetakan seni
+    const sCurve = norm * norm * (3 - 2 * norm);
+
+    // Pemetaan aman: min 20 (tidak hitam pekat mati), max 238 (highlight terlindungi dari terbakar)
+    const targetLum = 20 + sCurve * (238 - 20);
+
+    // Sentuhan mikro-sepia hangat (cetakan gelatin silver tua: DESIGN.md Sec. 7.2)
+    data[i]     = Math.min(255, Math.round(targetLum + 4)); // R hangat
+    data[i + 1] = Math.round(targetLum);                     // G
+    data[i + 2] = Math.max(0, Math.round(targetLum - 3));   // B dingin
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+  return canvas;
+}
+
+/**
  * Membersihkan canvas dari memori dengan menyetel width dan height ke 0 (AGENTS.md Aturan 2)
  */
 export function clearCanvas(canvas) {

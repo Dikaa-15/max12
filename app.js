@@ -3,8 +3,8 @@
  * app.js - State Machine Alur, Kontrol Keyboard, Kamera, Pipeline Generate & Auto-Reset (Fase B / T7)
  */
 
-import { cropAndMirrorTo4x5, clearCanvas } from './utils.js';
-import { renderImajinasi } from './themes.js';
+import { cropAndMirrorTo4x5, clearCanvas } from './utils.js?v=2';
+import { renderImajinasi, renderRealitas } from './themes.js?v=2';
 
 // 1. Definisi 7 State Resmi (TASKS.md T2, T3, T4, T5, T7)
 export const STATES = {
@@ -514,7 +514,11 @@ async function startProcessing() {
     state.bufferCanvas.width = 1080;
     state.bufferCanvas.height = 1350;
 
-    await renderImajinasi(state.bufferCanvas, state.faceCanvas, { seed });
+    if (state.selectedTheme === 'realitas') {
+      await renderRealitas(state.bufferCanvas, state.faceCanvas, { seed });
+    } else {
+      await renderImajinasi(state.bufferCanvas, state.faceCanvas, { seed });
+    }
 
     await minDelayPromise;
 
