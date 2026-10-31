@@ -4,7 +4,7 @@
  */
 
 import { cropAndMirrorTo4x5, clearCanvas } from './utils.js?v=2';
-import { renderImajinasi, renderRealitas } from './themes.js?v=2';
+import { renderImajinasi, renderRealitas, renderSurealis } from './themes.js?v=3';
 
 // 1. Definisi 7 State Resmi (TASKS.md T2, T3, T4, T5, T7)
 export const STATES = {
@@ -516,6 +516,8 @@ async function startProcessing() {
 
     if (state.selectedTheme === 'realitas') {
       await renderRealitas(state.bufferCanvas, state.faceCanvas, { seed });
+    } else if (state.selectedTheme === 'surealis') {
+      await renderSurealis(state.bufferCanvas, state.faceCanvas, { seed });
     } else {
       await renderImajinasi(state.bufferCanvas, state.faceCanvas, { seed });
     }

@@ -10,7 +10,8 @@ import {
   createFeatheredFace,
   drawSparkle,
   applyGrain,
-  applyCalibratedGrayscale
+  applyCalibratedGrayscale,
+  clearCanvas
 } from './utils.js?v=2';
 
 // Token Warna (DESIGN.md Bab 3)
@@ -442,3 +443,409 @@ export async function renderRealitas(canvas, faceCanvas, options = {}) {
 
   return canvas;
 }
+
+/**
+ * Menggambar tetesan air dengan gradien mutiara dan pantulan kilau
+ * (DESIGN.md Bab 7.3 Lapisan 7)
+ */
+function drawWaterDroplet(ctx, x, y, r, angle = 0) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+
+  const h = r * 1.6;
+  ctx.beginPath();
+  ctx.moveTo(0, -h);
+  ctx.bezierCurveTo(r * 0.85, -h * 0.2, r * 1.15, h * 0.5, 0, h);
+  ctx.bezierCurveTo(-r * 1.15, h * 0.5, -r * 0.85, -h * 0.2, 0, -h);
+  ctx.closePath();
+
+  const dropGrad = ctx.createRadialGradient(-r * 0.25, -h * 0.2, r * 0.1, 0, 0, r * 1.3);
+  dropGrad.addColorStop(0, '#FFFFFF');
+  dropGrad.addColorStop(0.35, 'rgba(247, 250, 255, 0.85)');
+  dropGrad.addColorStop(0.75, 'rgba(141, 184, 242, 0.45)');
+  dropGrad.addColorStop(1, 'rgba(47, 99, 214, 0.1)');
+  ctx.fillStyle = dropGrad;
+  ctx.shadowColor = 'rgba(255, 239, 168, 0.35)';
+  ctx.shadowBlur = 6;
+  ctx.fill();
+
+  ctx.strokeStyle = 'rgba(247, 250, 255, 0.75)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Specular highlight dot
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+  ctx.beginPath();
+  ctx.arc(-r * 0.25, -h * 0.25, Math.max(1, r * 0.22), 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/**
+ * Merender Tema 3: Surealis ("Ruang di antara keduanya")
+ * Ukuran kanvas: 1080 x 1350 px (DESIGN.md Bab 7.3)
+ * Peleburan dua alam: langit kaca dan laut cermin dengan pantulan beriak.
+ * 
+ * @param {HTMLCanvasElement} canvas
+ * @param {HTMLCanvasElement} faceCanvas
+ * @param {Object} [options]
+ * @param {number} [options.seed]
+ * @returns {Promise<HTMLCanvasElement>}
+ */
+export async function renderSurealis(canvas, faceCanvas, options = {}) {
+  const width = 1080;
+  const height = 1350;
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  const seed = options.seed !== undefined ? options.seed : Date.now();
+  const rng = mulberry32(seed);
+
+  // Tunggu kesiapan font sebelum merender (DESIGN.md Bab 4)
+  if (document.fonts) {
+    try {
+      await document.fonts.load('italic 600 110px "Cormorant Garamond"');
+      await document.fonts.load('800 24px "Plus Jakarta Sans"');
+      await document.fonts.load('600 16px "Plus Jakarta Sans"');
+      await document.fonts.ready;
+    } catch (e) {
+      // Font fallback graceful
+    }
+  }
+
+  const horizonY = 1000;
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 1: Dasar Dual-Tone (Langit & Air)
+  // Langit: (0 ke horizonY) gradien --sky ke --cloud
+  // Air: (horizonY ke 1350) gradien --azure ke --ultramarine-deep
+  // --------------------------------------------------------------------------
+  const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+  skyGrad.addColorStop(0, COLORS.sky);
+  skyGrad.addColorStop(0.55, '#BCD5F9');
+  skyGrad.addColorStop(1, COLORS.cloud);
+  ctx.fillStyle = skyGrad;
+  ctx.fillRect(0, 0, width, horizonY);
+
+  const waterGrad = ctx.createLinearGradient(0, horizonY, 0, height);
+  waterGrad.addColorStop(0, COLORS.azure);
+  waterGrad.addColorStop(0.35, COLORS.ultramarine);
+  waterGrad.addColorStop(1, COLORS.ultramarineDeep);
+  ctx.fillStyle = waterGrad;
+  ctx.fillRect(0, horizonY, width, height - horizonY);
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 2: Bulan Mutiara Besar di (800, 260), radius 150 px
+  // --------------------------------------------------------------------------
+  const moonX = 800;
+  const moonY = 260;
+  const moonRadius = 150;
+
+  // Halo lembut di belakang bulan
+  ctx.save();
+  const moonHalo = ctx.createRadialGradient(moonX, moonY, 40, moonX, moonY, 260);
+  moonHalo.addColorStop(0, 'rgba(255, 248, 220, 0.45)');
+  moonHalo.addColorStop(0.5, 'rgba(141, 184, 242, 0.2)');
+  moonHalo.addColorStop(1, 'rgba(141, 184, 242, 0)');
+  ctx.fillStyle = moonHalo;
+  ctx.beginPath();
+  ctx.arc(moonX, moonY, 260, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Bola bulan mutiara bercahaya
+  const moonGrad = ctx.createRadialGradient(moonX - 50, moonY - 50, 15, moonX, moonY, moonRadius);
+  moonGrad.addColorStop(0, '#FFFFFF');
+  moonGrad.addColorStop(0.3, COLORS.pearl);
+  moonGrad.addColorStop(0.7, '#D4E5FE');
+  moonGrad.addColorStop(1, '#8BAFE0');
+  ctx.fillStyle = moonGrad;
+  ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+  ctx.shadowBlur = 24;
+  ctx.beginPath();
+  ctx.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 3: Double Exposure Wajah Pengunjung
+  // Ukuran 640x800 di (540, 600), mask elips rx 300, ry 390, feather 40 px.
+  // Di dalamnya blend 'screen' gradien langit-awan alpha 0.35. Wajah TIDAK didistorsi.
+  // --------------------------------------------------------------------------
+  const faceW = 640;
+  const faceH = 800;
+  const faceX = 540 - faceW / 2; // 220
+  const faceY = 600 - faceH / 2; // 200 (sehingga tepi bawah menyentuh horizon di y = 1000)
+
+  const featheredFace = createFeatheredFace(faceCanvas, faceW, faceH, 300, 390, 40);
+
+  const deCanvas = document.createElement('canvas');
+  deCanvas.width = faceW;
+  deCanvas.height = faceH;
+  const deCtx = deCanvas.getContext('2d');
+
+  if (deCtx) {
+    deCtx.drawImage(featheredFace, 0, 0);
+
+    // Double exposure dengan gradien langit-awan (blend mode: screen)
+    deCtx.save();
+    deCtx.globalCompositeOperation = 'screen';
+    deCtx.globalAlpha = 0.35;
+
+    const deGrad = deCtx.createLinearGradient(0, 0, 0, faceH);
+    deGrad.addColorStop(0, 'rgba(141, 184, 242, 0.45)');   // Langit atas
+    deGrad.addColorStop(0.35, 'rgba(230, 240, 255, 0.4)'); // Awan lembut
+    deGrad.addColorStop(0.75, 'rgba(255, 239, 168, 0.25)'); // Kehangatan cahaya
+    deGrad.addColorStop(1, 'rgba(47, 99, 214, 0.2)');      // Biru air dasar
+
+    deCtx.fillStyle = deGrad;
+    deCtx.fillRect(0, 0, faceW, faceH);
+    deCtx.restore();
+
+    // Re-mask dengan destination-in agar area transparan di luar oval tetap bersih 100%
+    deCtx.save();
+    deCtx.globalCompositeOperation = 'destination-in';
+    deCtx.drawImage(featheredFace, 0, 0);
+    deCtx.restore();
+
+    ctx.drawImage(deCanvas, faceX, faceY);
+  }
+
+  clearCanvas(deCanvas);
+  clearCanvas(featheredFace);
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 4: Tangga Melayang Menanjak ke Arah Bulan
+  // 5 - 7 anak tangga rounded-rect, gradien --rose ke --gold
+  // --------------------------------------------------------------------------
+  const stepCount = Math.round(randomRange(rng, 5, 7));
+  const startStepX = 500;
+  const startStepY = 530;
+  const endStepX = 750;
+  const endStepY = 320;
+
+  for (let i = 0; i < stepCount; i++) {
+    const t = i / (stepCount - 1);
+    const sx = startStepX + t * (endStepX - startStepX);
+    const sy = startStepY + t * (endStepY - startStepY);
+    const sw = 85 - t * 16;
+    const sh = 14 - t * 2;
+    const sr = sh / 2;
+
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(-0.16); // Kemiringan melayang sekitar -9 derajat
+
+    const stepGrad = ctx.createLinearGradient(-sw / 2, 0, sw / 2, 0);
+    stepGrad.addColorStop(0, COLORS.rose);
+    stepGrad.addColorStop(1, COLORS.gold);
+
+    ctx.fillStyle = stepGrad;
+    ctx.shadowColor = 'rgba(255, 216, 107, 0.45)';
+    ctx.shadowBlur = 10;
+
+    // Gambar rounded-rect
+    ctx.beginPath();
+    ctx.roundRect(-sw / 2, -sh / 2, sw, sh, sr);
+    ctx.fill();
+
+    // Garis kilau tipis di permukaan atas tangga
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(247, 250, 255, 0.7)';
+    ctx.beginPath();
+    ctx.moveTo(-sw / 2 + sr, -sh / 2);
+    ctx.lineTo(sw / 2 - sr, -sh / 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 5: Refleksi di Air dengan Efek Gelombang Sinusoidal
+  // Salinan terbalik area wajah dan langit di bawah horizon (y >= 1000),
+  // alpha 0.35, digambar per strip 6 px dengan offset sinus 6 - 10 px.
+  // --------------------------------------------------------------------------
+  const waterH = height - horizonY; // 350 px
+  const refBuffer = document.createElement('canvas');
+  refBuffer.width = width;
+  refBuffer.height = waterH;
+  const refCtx = refBuffer.getContext('2d');
+
+  if (refCtx) {
+    // Salin area tepat di atas garis horizon (dari horizonY - waterH ke horizonY)
+    refCtx.drawImage(
+      canvas,
+      0, horizonY - waterH, width, waterH,
+      0, 0, width, waterH
+    );
+
+    const sliceH = 6;
+    const slices = Math.floor(waterH / sliceH);
+
+    ctx.save();
+    for (let i = 0; i < slices; i++) {
+      const destY = horizonY + i * sliceH;
+      // Strip sumber dibaca dari bawah ke atas (dekat horizon ke atas)
+      const srcY = waterH - (i + 1) * sliceH;
+
+      // Amplitudo sinusoidal 6 - 10 px
+      const waveOffset = Math.sin(i * 0.28 + (seed % 10)) * (7 + Math.sin(i * 0.15) * 3);
+
+      // Fade bertahap seiring kedalaman air
+      const depthFactor = 1 - (i / slices) * 0.35;
+      ctx.globalAlpha = 0.35 * depthFactor;
+
+      ctx.drawImage(
+        refBuffer,
+        0, srcY, width, sliceH,
+        waveOffset, destY, width, sliceH
+      );
+    }
+    ctx.restore();
+  }
+  clearCanvas(refBuffer);
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 6: Garis Horizon & Riak Konsentris di Air
+  // --------------------------------------------------------------------------
+  // Garis horizon halus bercahaya tipis
+  ctx.save();
+  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = 'rgba(247, 250, 255, 0.55)';
+  ctx.shadowColor = COLORS.goldGlow;
+  ctx.shadowBlur = 8;
+  ctx.beginPath();
+  ctx.moveTo(0, horizonY);
+  ctx.lineTo(width, horizonY);
+  ctx.stroke();
+  ctx.restore();
+
+  // 3 - 5 Riak elips konsentris di permukaan air
+  const rippleCount = Math.round(randomRange(rng, 3, 5));
+  const rippleBaseX = 540;
+  const rippleBaseY = 1075;
+
+  ctx.save();
+  ctx.lineWidth = 1.2;
+  for (let i = 0; i < rippleCount; i++) {
+    const rx = 120 + i * 45;
+    const ry = rx * 0.16; // Efek perspektif permukaan air datar
+    const alpha = 0.45 - i * 0.08;
+
+    ctx.strokeStyle = `rgba(247, 250, 255, ${Math.max(0.12, alpha)})`;
+    ctx.beginPath();
+    ctx.ellipse(rippleBaseX, rippleBaseY, rx, ry, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 7: Tetesan Air Melayang Naik (8 - 14 tetesan dengan gradien mutiara)
+  // --------------------------------------------------------------------------
+  const dropCount = Math.round(randomRange(rng, 8, 14));
+  for (let i = 0; i < dropCount; i++) {
+    const dx = randomRange(rng, 180, 900);
+    const dy = randomRange(rng, 640, 1060);
+    const dr = randomRange(rng, 6, 13);
+    const dAngle = randomRange(rng, -0.15, 0.15);
+    drawWaterDroplet(ctx, dx, dy, dr, dAngle);
+  }
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 8: Kelopak Kaca Halus (3 - 4 kelopak melayang sebagai tanda peleburan)
+  // --------------------------------------------------------------------------
+  const petalCount = Math.round(randomRange(rng, 3, 4));
+  for (let i = 0; i < petalCount; i++) {
+    const px = randomRange(rng, 200, 880);
+    const py = randomRange(rng, 400, 950);
+    const pAngle = randomRange(rng, -Math.PI, Math.PI);
+    const pLen = randomRange(rng, 80, 130);
+
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(pAngle);
+
+    const petalGrad = ctx.createLinearGradient(0, 0, pLen, 0);
+    petalGrad.addColorStop(0, 'rgba(141, 184, 242, 0.35)');
+    petalGrad.addColorStop(0.6, 'rgba(247, 250, 255, 0.65)');
+    petalGrad.addColorStop(1, 'rgba(247, 250, 255, 0.05)');
+
+    ctx.fillStyle = petalGrad;
+    ctx.strokeStyle = 'rgba(247, 250, 255, 0.7)';
+    ctx.lineWidth = 1.2;
+    ctx.shadowColor = 'rgba(141, 184, 242, 0.35)';
+    ctx.shadowBlur = 8;
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(pLen * 0.3, -25, pLen * 0.7, -20, pLen, 0);
+    ctx.bezierCurveTo(pLen * 0.7, 20, pLen * 0.3, 25, 0, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 9: Tipografi Surealis
+  // --------------------------------------------------------------------------
+  ctx.save();
+
+  // Header "MAX 12" di (80, 100)
+  ctx.font = '600 16px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(247, 250, 255, 0.85)';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('MAX 12', 80, 100);
+
+  // Header "CATALOGUE NO. 03" di (1000, 100)
+  ctx.font = '500 14px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(247, 250, 255, 0.7)';
+  ctx.textAlign = 'right';
+  ctx.fillText('CATALOGUE NO. 03', 1000, 100);
+
+  // Garis pemisah header tipis di y = 120
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(247, 250, 255, 0.2)';
+  ctx.beginPath();
+  ctx.moveTo(80, 120);
+  ctx.lineTo(1000, 120);
+  ctx.stroke();
+
+  // Judul: "Surealis" di (540, 1190)
+  // Cormorant Garamond 600 Italic 110 px dengan glow halus gold-glow
+  ctx.font = 'italic 600 110px "Cormorant Garamond", Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = COLORS.pearl;
+  ctx.shadowColor = COLORS.goldGlow;
+  ctx.shadowBlur = 18;
+  ctx.fillText('Surealis', 540, 1190);
+
+  // Subtitle: "Ruang di antara keduanya." di (540, 1225)
+  ctx.shadowBlur = 0;
+  ctx.font = 'italic 500 16px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(247, 250, 255, 0.8)';
+  ctx.fillText('Ruang di antara keduanya.', 540, 1225);
+
+  // Caption: "Tiga Dunia Wajahmu  •  MAX 12" di (540, 1270)
+  ctx.font = '800 24px "Plus Jakarta Sans", system-ui, sans-serif';
+  ctx.fillStyle = COLORS.pearl;
+  ctx.letterSpacing = '1px';
+  ctx.fillText('Tiga Dunia Wajahmu  •  MAX 12', 540, 1270);
+
+  ctx.restore();
+
+  // --------------------------------------------------------------------------
+  // LAPISAN 10: Finishing - Grain Monokrom Halus (alpha 0.08)
+  // --------------------------------------------------------------------------
+  applyGrain(ctx, width, height, 0.08);
+
+  return canvas;
+}
+
