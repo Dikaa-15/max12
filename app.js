@@ -43,6 +43,7 @@ const STATE_VIEW_MAP = {
 export const state = {
   status: STATES.INTRO,
   selectedTheme: 'imajinasi',
+  selectedPose: 1,
   countdownIntervalId: null,
   processingTimeoutId: null,
   idleTimerId: null,
@@ -545,12 +546,13 @@ async function startProcessing() {
       console.warn('Isolasi subjek atau stylization gagal, menggunakan frame asli:', segErr);
     }
 
+    const renderOpts = { seed, poseId: state.selectedPose || 1 };
     if (state.selectedTheme === 'realitas') {
-      await renderRealitas(state.bufferCanvas, processedFace, { seed });
+      await renderRealitas(state.bufferCanvas, processedFace, renderOpts);
     } else if (state.selectedTheme === 'surealis') {
-      await renderSurealis(state.bufferCanvas, processedFace, { seed });
+      await renderSurealis(state.bufferCanvas, processedFace, renderOpts);
     } else {
-      await renderImajinasi(state.bufferCanvas, processedFace, { seed });
+      await renderImajinasi(state.bufferCanvas, processedFace, renderOpts);
     }
 
     await minDelayPromise;
@@ -708,6 +710,7 @@ poseGuideItems.forEach((item) => {
     item.classList.add('active');
     item.setAttribute('aria-selected', 'true');
     const poseId = item.getAttribute('data-pose');
+    state.selectedPose = parseInt(poseId, 10) || 1;
     if (poseTipText && POSE_TIPS[poseId]) {
       poseTipText.textContent = POSE_TIPS[poseId];
     }
